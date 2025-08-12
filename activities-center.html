@@ -1,0 +1,2778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activities Center - Gesture Mouse Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #ffeb3b;
+            font-size: 18px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-blue {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+
+        .btn-orange {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        .btn-red {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            display: block;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #ffcdd2;
+        }
+
+        .mapping-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .mapping-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 8px;
+            border-radius: 8px;
+            gap: 10px;
+        }
+
+        .mapping-select {
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            min-width: 150px;
+        }
+
+        .gesture-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #FFD700;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .manual-mapping-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .manual-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .manual-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .remove-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .camera-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-container {
+            width: 100%;
+            max-width: 640px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+        }
+
+        .info-text {
+            font-size: 11px;
+            opacity: 0.7;
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        .placeholder {
+            text-align: center;
+            opacity: 0.5;
+            padding: 20px;
+            font-size: 12px;
+        }
+
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.success {
+            background: rgba(76, 175, 80, 0.9);
+        }
+
+        .message.error {
+            background: rgba(244, 67, 54, 0.9);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .activity-btn {
+            width: auto !important;
+            flex: 1;
+            margin-bottom: 0 !important;
+            padding: 10px 15px;
+            font-size: 12px;
+        }
+
+        .activity-btn.active {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        .activity-view {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .activity-view.active {
+            display: flex;
+        }
+
+        .activity-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .activity-header h3 {
+            color: #ffeb3b;
+            margin-bottom: 10px;
+        }
+
+        .score-display, .level-display, .timer-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .target {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .target:hover {
+            transform: scale(1.1);
+        }
+
+        .target.hit {
+            animation: targetHit 0.5s ease-out forwards;
+        }
+
+        @keyframes targetHit {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .brush-preview {
+            position: fixed;
+            pointer-events: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px solid white;
+            z-index: 1000;
+            display: none;
+        }
+        
+        /* Global Virtual Cursor */
+        .virtual-cursor {
+            position: fixed;
+            width: 24px;
+            height: 24px;
+            background: #4CAF50;
+            border: 3px solid white;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.3);
+            transition: all 0.1s ease;
+        }
+        
+        .virtual-cursor.clicking {
+            transform: rotate(-45deg) scale(0.8);
+            background: #FF5722;
+            box-shadow: 0 0 20px rgba(255, 87, 34, 0.8);
+        }
+        
+        .virtual-cursor.right-clicking {
+            transform: rotate(-45deg) scale(0.9);
+            background: #2196F3;
+            box-shadow: 0 0 20px rgba(33, 150, 243, 0.8);
+        }
+        
+        .virtual-cursor.scrolling {
+            transform: rotate(-45deg) scale(1.1);
+            background: #9C27B0;
+            box-shadow: 0 0 25px rgba(156, 39, 176, 0.8);
+        }
+        
+        .virtual-cursor.at-rest {
+            opacity: 0.7;
+            background: #FFC107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+        }
+        
+        /* Floating Camera Window */
+        .floating-camera {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            height: 280px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .floating-camera-header {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .floating-camera-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .floating-camera-btn {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .floating-camera-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .camera-container {
+            position: relative;
+            height: 180px;
+            overflow: hidden;
+        }
+
+        .camera-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            transform: scaleX(-1);
+        }
+
+        .camera-info {
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.8);
+            font-size: 11px;
+            color: white;
+            font-family: monospace;
+        }
+
+        .gesture-status {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .hand-landmarks {
+            stroke: #4CAF50;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .landmark-point {
+            fill: #FF5722;
+            stroke: white;
+            stroke-width: 1;
+        }
+
+        .connection-line {
+            stroke: #2196F3;
+            stroke-width: 1.5;
+            opacity: 0.7;
+        }
+
+        /* Gesture Status Display */
+        .gesture-display {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 9998;
+            font-family: monospace;
+        }
+        
+        .gesture-display .current-gesture {
+            color: #4CAF50;
+            font-size: 16px;
+        }
+        
+        .gesture-display .cursor-pos {
+            color: #2196F3;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Global Virtual Cursor -->
+    <div id="globalVirtualCursor" class="virtual-cursor"></div>
+    
+    <!-- Floating Camera Window -->
+    <div id="floatingCamera" class="floating-camera">
+        <div class="floating-camera-header">
+            <span>📹 Hand Detection</span>
+            <div class="floating-camera-controls">
+                <button id="toggleCamera" class="floating-camera-btn">▶️ Start</button>
+                <button id="minimizeCamera" class="floating-camera-btn">➖</button>
+            </div>
+        </div>
+        <div class="camera-container">
+            <video id="floatingVideo" class="camera-video" autoplay muted playsinline></video>
+            <canvas id="floatingCanvas" class="camera-overlay" width="320" height="180"></canvas>
+        </div>
+        <div class="camera-info">
+            <div>Gesture: <span id="floatingGesture" class="gesture-status">None</span></div>
+            <div>Confidence: <span id="gestureConfidence">0%</span> | Hands: <span id="handCount">0</span></div>
+        </div>
+    </div>
+
+    <!-- Gesture Status Display -->
+    <div id="gestureDisplay" class="gesture-display">
+        <div class="current-gesture">Gesture: <span id="currentGesture">None</span></div>
+        <div class="cursor-pos">Position: <span id="cursorPosition">400, 250</span></div>
+    </div>
+    
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Model Loader -->
+            <div class="card">
+                <h3>📁 Load Model & Schema</h3>
+                
+                <div id="modelInfo" class="status" style="display: none;">
+                    <div style="font-weight: bold;">🤖 Model Loaded:</div>
+                    <div id="modelName">No model loaded</div>
+                    <div id="gestureCount">0 gestures</div>
+                </div>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="modelFile" class="file-input" accept=".json">
+                    <label for="modelFile" class="file-input-label">📂 Choose Model File</label>
+                </div>
+                <div class="info-text">Select your trained gesture model JSON file</div>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="schemaFile" class="file-input" accept=".json">
+                    <label for="schemaFile" class="file-input-label btn-blue">🔄 Load Mapping Schema</label>
+                </div>
+                <div class="info-text">Load previously saved mapping configuration</div>
+                
+                <div id="modelStatus" class="status" style="display: none;">Ready</div>
+            </div>
+            
+            <!-- Model-based Mappings -->
+            <div class="card">
+                <h3>⚙️ Gesture Mappings</h3>
+                <div id="gestureMappings" class="mapping-container">
+                    <div class="placeholder">Load a model to configure gesture mappings</div>
+                </div>
+                <button id="saveMapping" class="btn" disabled>💾 Save Mapping Schema</button>
+            </div>
+            
+            <!-- Manual Mappings -->
+            <div class="card">
+                <h3>✏️ Manual Mapping Editor</h3>
+                <div class="info-text">Create custom mappings without a model</div>
+                
+                <div id="manualMappings" class="mapping-container">
+                    <div class="placeholder">Click "Add Mapping" to create manual gesture mappings</div>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button id="addMapping" class="btn btn-blue" style="flex: 1;">➕ Add Mapping</button>
+                    <button id="clearMappings" class="btn btn-red" style="flex: 1;">🗑️ Clear</button>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button id="saveManualMapping" class="btn" style="flex: 1;" disabled>💾 Save Manual</button>
+                    <button id="loadManualMapping" class="btn btn-orange" style="flex: 1;">📂 Load Manual</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="card">
+                <h3>📹 Camera Control</h3>
+                <button id="startCamera" class="btn">🎥 Start Camera</button>
+                <div id="cameraStatus" class="status" style="display: none;">Camera off</div>
+            </div>
+            
+            <div class="camera-section">
+                <div class="card">
+                    <h3>🎮 Activities</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="drawingActivity" class="btn activity-btn" data-activity="drawing">🎨 Drawing Canvas</button>
+                        <button id="targetActivity" class="btn activity-btn" data-activity="target">📜 Scroll Test</button>
+                        <button id="cameraActivity" class="btn activity-btn active" data-activity="camera">📹 Camera View</button>
+                    </div>
+                </div>
+                
+                <!-- Camera View -->
+                <div id="cameraView" class="activity-view active">
+                    <div style="text-align: center; padding: 40px;">
+                        <h4 style="color: #4CAF50; margin-bottom: 20px;">📹 Camera View</h4>
+                        <p style="opacity: 0.8; line-height: 1.6;">The camera feed is displayed in the floating window at the top-right corner.</p>
+                        <p style="opacity: 0.8; line-height: 1.6;">Use your gestures to control the virtual cursor and interact with the interface.</p>
+                        <div id="gestureStatus" class="info-text">No gesture detected</div>
+                    </div>
+                </div>
+                
+                <!-- Drawing Activity -->
+                <div id="drawingView" class="activity-view">
+                    <div class="activity-header">
+                        <h3>🎨 Drawing Canvas</h3>
+                        <div style="display: flex; gap: 10px; margin: 15px 0;">
+                            <button id="clearCanvas" class="btn btn-red" style="width: auto; padding: 8px 16px;">🗑️ Clear</button>
+                            <button id="changeBrush" class="btn btn-blue" style="width: auto; padding: 8px 16px;">🖌️ Change Brush</button>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <span style="font-size: 12px;">Size:</span>
+                                <input type="range" id="brushSize" min="2" max="20" value="5" style="width: 100px;">
+                                <span id="brushSizeValue" style="font-size: 12px;">5px</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Smoothing Parameters Tuning Panel -->
+                        <div id="smoothingPanel" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid rgba(76, 175, 80, 0.3);">
+                            <h4 style="color: #4CAF50; margin-bottom: 15px; font-size: 14px;">🎛️ Smoothing Parameters (Current Best Values)</h4>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 12px;">
+                                <div>
+                                    <label style="color: #FFF; margin-bottom: 5px; display: block;">Buffer Size: <span id="bufferSizeValue">5</span> (Best: 5)</label>
+                                    <input type="range" id="bufferSize" min="3" max="10" value="5" style="width: 100%;">
+                                </div>
+                                
+                                <div>
+                                    <label style="color: #FFF; margin-bottom: 5px; display: block;">EMA Alpha: <span id="emaAlphaValue">0.30</span> (Best: 0.30)</label>
+                                    <input type="range" id="emaAlpha" min="0.1" max="0.9" step="0.05" value="0.30" style="width: 100%;">
+                                </div>
+                                
+                                <div>
+                                    <label style="color: #FFF; margin-bottom: 5px; display: block;">Deadzone: <span id="deadzoneValue">0.003</span> (Best: 0.003)</label>
+                                    <input type="range" id="deadzone" min="0.001" max="0.010" step="0.001" value="0.003" style="width: 100%;">
+                                </div>
+                                
+                                <div>
+                                    <label style="color: #FFF; margin-bottom: 5px; display: block;">Sensitivity: <span id="sensitivityValue">2.5</span> (Best: 2.5)</label>
+                                    <input type="range" id="sensitivity" min="1.0" max="5.0" step="0.1" value="2.5" style="width: 100%;">
+                                </div>
+                                
+                                <div>
+                                    <label style="color: #FFF; margin-bottom: 5px; display: block;">Gesture Frames: <span id="gestureFramesValue">3</span> (Best: 3)</label>
+                                    <input type="range" id="gestureFrames" min="1" max="10" value="3" style="width: 100%;">
+                                </div>
+                                
+                                <div>
+                                    <label style="color: #FFF; margin-bottom: 5px; display: block;">Scroll Threshold: <span id="scrollThresholdValue">0.008</span> (Best: 0.008)</label>
+                                    <input type="range" id="scrollThreshold" min="0.003" max="0.020" step="0.001" value="0.008" style="width: 100%;">
+                                </div>
+                            </div>
+                            
+                            <button id="resetToDefaults" class="btn" style="margin-top: 10px; padding: 5px 10px; font-size: 11px; background: #FF9800;">↺ Reset to Best Values</button>
+                        </div>
+                    </div>
+                    <canvas id="drawingCanvas" width="1000" height="700" style="border: 3px solid #4CAF50; border-radius: 15px; background: linear-gradient(135deg, #1a1a2e, #16213e); box-shadow: 0 8px 32px rgba(0,0,0,0.3); cursor: crosshair;"></canvas>
+                    <div class="info-text">🎨 Drawing Rules: Mouse move = navigate only | Left click = draw dots/lines at cursor | Right click = erase + stop drawing | Move cursor then click to draw where you want</div>
+                </div>
+                
+                <!-- Scroll Test Activity -->
+                <div id="targetView" class="activity-view">
+                    <div class="activity-header">
+                        <h3>📜 Scroll & Click Test</h3>
+                        <div class="info-text">Use gestures to click buttons and scroll through content</div>
+                    </div>
+                    
+                    <div id="scrollTestArea" style="width: 800px; height: 500px; border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; background: rgba(255,255,255,0.05); margin: 0 auto; overflow-y: auto; padding: 20px;">
+                        
+                        <!-- Test Buttons Section -->
+                        <div style="background: rgba(76,175,80,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <h4 style="color: #4CAF50; margin-bottom: 15px;">🎯 Click Test Buttons</h4>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                                <button class="test-btn" data-color="red" style="background: #f44336; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🔴 Red Button</button>
+                                <button class="test-btn" data-color="blue" style="background: #2196F3; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🔵 Blue Button</button>
+                                <button class="test-btn" data-color="green" style="background: #4CAF50; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🟢 Green Button</button>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                                <button class="test-btn" data-color="orange" style="background: #FF9800; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🟠 Orange Button</button>
+                                <button class="test-btn" data-color="purple" style="background: #9C27B0; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🟣 Purple Button</button>
+                            </div>
+                            <div id="clickCounter" style="text-align: center; margin-top: 15px; font-weight: bold; color: #4CAF50;">Total Clicks: 0</div>
+                        </div>
+                        
+                        <!-- Scrollable Content Section -->
+                        <div style="background: rgba(33,150,243,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <h4 style="color: #2196F3; margin-bottom: 15px;">📜 Scrollable Content</h4>
+                            <p style="margin-bottom: 15px; line-height: 1.6;">Use the scroll gesture to navigate through this content. This section demonstrates how gesture scrolling works in a real application.</p>
+                            
+                            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h5 style="color: #FFD700; margin-bottom: 10px;">🎮 How to Use Gesture Controls:</h5>
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>Stay at Rest:</strong> Keep cursor stationary for hand relaxation</li>
+                                    <li><strong>Mouse Move:</strong> Navigate cursor around the screen</li>
+                                    <li><strong>Left Click:</strong> Click buttons and interactive elements</li>
+                                    <li><strong>Right Click:</strong> Secondary actions (context menus)</li>
+                                    <li><strong>Scroll:</strong> Scroll up/down through content like this</li>
+                                </ul>
+                            </div>
+                            
+                            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h5 style="color: #FF6B6B; margin-bottom: 10px;">🌟 Features:</h5>
+                                <p style="line-height: 1.6;">The virtual cursor system provides natural mouse-like control using only hand gestures. The floating camera window shows real-time hand tracking with landmark visualization.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- More Content for Scrolling -->
+                        <div style="background: rgba(156,39,176,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <h4 style="color: #9C27B0; margin-bottom: 15px;">🔍 Testing Scroll Functionality</h4>
+                            <p style="margin-bottom: 15px; line-height: 1.6;">This section is designed to test the scroll gesture. You should be able to scroll up and down through all this content using your gesture controls.</p>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px;">
+                                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                                    <h6 style="color: #4CAF50; margin-bottom: 8px;">✅ Scroll Up</h6>
+                                    <p style="font-size: 14px; line-height: 1.5;">Use your scroll gesture to move upward through the content.</p>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                                    <h6 style="color: #2196F3; margin-bottom: 8px;">⬇️ Scroll Down</h6>
+                                    <p style="font-size: 14px; line-height: 1.5;">Use your scroll gesture to move downward through the content.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Final Section -->
+                        <div style="background: rgba(255,152,0,0.1); padding: 20px; border-radius: 10px; text-align: center;">
+                            <h4 style="color: #FF9800; margin-bottom: 15px;">🎉 End of Content</h4>
+                            <p style="line-height: 1.6;">Congratulations! If you can see this text, your scroll gesture is working perfectly. Try scrolling back up to test the gesture controls.</p>
+                            <button class="test-btn final-btn" style="background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 15px;">🏆 Success!</button>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <!-- ML library for matrix operations -->
+    <script src="https://unpkg.com/ml-matrix@6.10.4/lib/index.min.js"></script>
+
+    <script>
+        // Simple k-NN Classifier implementation (same as gesture-tester)
+        class SimpleKNNClassifier {
+            constructor(k = 5) {
+                this.k = k;
+                this.trainX = [];
+                this.trainY = [];
+            }
+
+            train(X, y) {
+                this.trainX = X.map(row => [...row]);
+                this.trainY = [...y];
+            }
+
+            predict(sample) {
+                const distances = this.trainX.map((trainSample, idx) => ({
+                    distance: this.euclideanDistance(sample, trainSample),
+                    label: this.trainY[idx]
+                }));
+
+                distances.sort((a, b) => a.distance - b.distance);
+                const kNearest = distances.slice(0, this.k);
+
+                const labelCounts = {};
+                kNearest.forEach(neighbor => {
+                    labelCounts[neighbor.label] = (labelCounts[neighbor.label] || 0) + 1;
+                });
+
+                let maxCount = 0;
+                let predictedLabel = 0;
+                for (const [label, count] of Object.entries(labelCounts)) {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        predictedLabel = parseInt(label);
+                    }
+                }
+
+                return predictedLabel;
+            }
+
+            predictWithConfidence(sample) {
+                const distances = this.trainX.map((trainSample, idx) => ({
+                    distance: this.euclideanDistance(sample, trainSample),
+                    label: this.trainY[idx]
+                }));
+
+                distances.sort((a, b) => a.distance - b.distance);
+                const kNearest = distances.slice(0, this.k);
+
+                const labelCounts = {};
+                kNearest.forEach(neighbor => {
+                    labelCounts[neighbor.label] = (labelCounts[neighbor.label] || 0) + 1;
+                });
+
+                let maxCount = 0;
+                let predictedLabel = 0;
+                for (const [label, count] of Object.entries(labelCounts)) {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        predictedLabel = parseInt(label);
+                    }
+                }
+
+                const confidence = maxCount / this.k;
+                return { prediction: predictedLabel, confidence: confidence };
+            }
+
+            euclideanDistance(a, b) {
+                let sum = 0;
+                for (let i = 0; i < a.length; i++) {
+                    sum += Math.pow(a[i] - b[i], 2);
+                }
+                return Math.sqrt(sum);
+            }
+        }
+
+
+        class ActivitiesCenter {
+            constructor() {
+                console.log('🚀 CONSTRUCTOR: Starting ActivitiesCenter initialization');
+                this.modelData = null;
+                this.trainedModel = null;
+                this.gestureMapping = {};
+                this.gestureColors = {}; // Store custom color mappings
+                this.manualMappings = [];
+                this.hands = null;
+                this.camera = null;
+                this.isDetecting = false;
+                
+                // Activity state
+                this.currentActivity = 'camera';
+                
+                // Virtual cursor system
+                this.virtualCursor = { 
+                    x: 400, 
+                    y: 250, 
+                    isAtRest: false,
+                    restPosition: { x: 400, y: 250 }
+                };
+                this.lastGesture = 'stayRightThere';
+                this.gestureHoldTime = 0;
+                this.gestureStabilityThreshold = 3; // frames to confirm gesture (reduced for responsiveness)
+                this.currentConfidence = 0;
+                this.lastProcessedAction = null;
+                
+                // Drawing state
+                this.isDrawing = false;
+                this.brushSize = 5;
+                this.brushColor = '#4CAF50';
+                this.lastDrawPoint = { x: 0, y: 0 };
+                
+                // Scroll state
+                this.scrollDirection = 0; // -1 for up, 1 for down
+                
+                // Navigation state
+                this.mouseNavigationActive = false;
+                this.handReferenceX = 0;
+                this.handReferenceY = 0;
+                this.mouseSensitivity = 2.5; // Tunable sensitivity
+                this.scrollMovementThreshold = 0.008; // Tunable scroll threshold
+                this.needsReferenceUpdate = false; // Flag to update reference without movement
+                this.lastFrameHadHand = false; // Track if last frame had hand detection
+                
+                // Smoothing filters to reduce MediaPipe jitter
+                this.smoothingBuffer = {
+                    size: 5, // Number of frames to average
+                    positions: [], // Rolling buffer of hand positions
+                    index: 0
+                };
+                
+                // Exponential moving average for cursor position
+                this.cursorEMA = {
+                    x: 400,
+                    y: 250,
+                    alpha: 0.3 // Lower = more smoothing, higher = more responsive
+                };
+                
+                // Deadzone for micro-movements
+                this.deadzone = {
+                    threshold: 0.003, // Minimum movement to register
+                    lastStableX: 0,
+                    lastStableY: 0
+                };
+                
+                // Game state
+                this.gameState = {
+                    score: 0,
+                    level: 1,
+                    timeLeft: 30,
+                    isPlaying: false,
+                    targets: [],
+                    gameTimer: null
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('🚀 INIT: Starting Activities Center initialization');
+                this.initElements();
+                this.setupEventListeners();
+                this.startPeriodicLogging();
+                console.log('✅ INIT: Activities Center initialized (MediaPipe will initialize when camera starts)');
+                
+            }
+            
+            initElements() {
+                this.elements = {
+                    // File inputs
+                    modelFile: document.getElementById('modelFile'),
+                    schemaFile: document.getElementById('schemaFile'),
+                    
+                    // Status displays
+                    modelInfo: document.getElementById('modelInfo'),
+                    modelName: document.getElementById('modelName'),
+                    gestureCount: document.getElementById('gestureCount'),
+                    modelStatus: document.getElementById('modelStatus'),
+                    cameraStatus: document.getElementById('cameraStatus'),
+                    gestureStatus: document.getElementById('gestureStatus'),
+                    
+                    // Mapping containers
+                    gestureMappings: document.getElementById('gestureMappings'),
+                    manualMappings: document.getElementById('manualMappings'),
+                    
+                    // Buttons
+                    saveMapping: document.getElementById('saveMapping'),
+                    addMapping: document.getElementById('addMapping'),
+                    clearMappings: document.getElementById('clearMappings'),
+                    saveManualMapping: document.getElementById('saveManualMapping'),
+                    loadManualMapping: document.getElementById('loadManualMapping'),
+                    startCamera: document.getElementById('startCamera'),
+                    
+                    // Activity elements
+                    drawingActivity: document.getElementById('drawingActivity'),
+                    targetActivity: document.getElementById('targetActivity'),
+                    cameraActivity: document.getElementById('cameraActivity'),
+                    cameraView: document.getElementById('cameraView'),
+                    drawingView: document.getElementById('drawingView'),
+                    targetView: document.getElementById('targetView'),
+                    
+                    // Drawing elements
+                    drawingCanvas: document.getElementById('drawingCanvas'),
+                    clearCanvas: document.getElementById('clearCanvas'),
+                    changeBrush: document.getElementById('changeBrush'),
+                    brushSize: document.getElementById('brushSize'),
+                    brushSizeValue: document.getElementById('brushSizeValue'),
+                    
+                    // Smoothing parameter controls
+                    bufferSize: document.getElementById('bufferSize'),
+                    bufferSizeValue: document.getElementById('bufferSizeValue'),
+                    emaAlpha: document.getElementById('emaAlpha'),
+                    emaAlphaValue: document.getElementById('emaAlphaValue'),
+                    deadzone: document.getElementById('deadzone'),
+                    deadzoneValue: document.getElementById('deadzoneValue'),
+                    sensitivity: document.getElementById('sensitivity'),
+                    sensitivityValue: document.getElementById('sensitivityValue'),
+                    gestureFrames: document.getElementById('gestureFrames'),
+                    gestureFramesValue: document.getElementById('gestureFramesValue'),
+                    scrollThreshold: document.getElementById('scrollThreshold'),
+                    scrollThresholdValue: document.getElementById('scrollThresholdValue'),
+                    resetToDefaults: document.getElementById('resetToDefaults'),
+                    
+                    // Game elements
+                    gameArea: document.getElementById('gameArea'),
+                    cursor: document.getElementById('cursor'),
+                    score: document.getElementById('score'),
+                    level: document.getElementById('level'),
+                    timer: document.getElementById('timer'),
+                    startGame: document.getElementById('startGame'),
+                    resetGame: document.getElementById('resetGame'),
+                    
+                    // Media elements (removed static video)
+                    
+                    // Global cursor elements
+                    globalVirtualCursor: document.getElementById('globalVirtualCursor'),
+                    gestureDisplay: document.getElementById('gestureDisplay'),
+                    currentGesture: document.getElementById('currentGesture'),
+                    cursorPosition: document.getElementById('cursorPosition'),
+                    
+                    // Floating camera elements
+                    floatingCamera: document.getElementById('floatingCamera'),
+                    toggleCamera: document.getElementById('toggleCamera'),
+                    minimizeCamera: document.getElementById('minimizeCamera'),
+                    floatingVideo: document.getElementById('floatingVideo'),
+                    floatingCanvas: document.getElementById('floatingCanvas'),
+                    floatingGesture: document.getElementById('floatingGesture'),
+                    gestureConfidence: document.getElementById('gestureConfidence'),
+                    handCount: document.getElementById('handCount'),
+                    
+                    // Test elements
+                    clickCounter: document.getElementById('clickCounter'),
+                    scrollTestArea: document.getElementById('scrollTestArea')
+                };
+                
+            }
+            
+            setupEventListeners() {
+                // Model file input
+                this.elements.modelFile.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.loadModel(e.target.files[0]);
+                    }
+                });
+                
+                // Schema file input
+                this.elements.schemaFile.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.loadSchema(e.target.files[0]);
+                    }
+                });
+                
+                // Mapping buttons
+                this.elements.saveMapping.addEventListener('click', () => {
+                    this.saveMappingSchema();
+                });
+                
+                // Manual mapping buttons
+                this.elements.addMapping.addEventListener('click', () => {
+                    this.addManualMapping();
+                });
+                
+                this.elements.clearMappings.addEventListener('click', () => {
+                    this.clearManualMappings();
+                });
+                
+                this.elements.saveManualMapping.addEventListener('click', () => {
+                    this.saveManualMappingSchema();
+                });
+                
+                this.elements.loadManualMapping.addEventListener('click', () => {
+                    this.loadManualMappingFile();
+                });
+                
+                // Camera button
+                this.elements.startCamera.addEventListener('click', () => {
+                    this.toggleCamera();
+                });
+
+                
+                // Activity buttons
+                this.elements.drawingActivity.addEventListener('click', () => {
+                    this.switchActivity('drawing');
+                });
+                
+                this.elements.targetActivity.addEventListener('click', () => {
+                    this.switchActivity('target');
+                });
+                
+                this.elements.cameraActivity.addEventListener('click', () => {
+                    this.switchActivity('camera');
+                });
+                
+                // Drawing controls
+                this.elements.clearCanvas.addEventListener('click', () => {
+                    this.clearDrawingCanvas();
+                });
+                
+                this.elements.changeBrush.addEventListener('click', () => {
+                    this.changeBrushColor();
+                });
+                
+                this.elements.brushSize.addEventListener('input', (e) => {
+                    this.brushSize = parseInt(e.target.value);
+                    this.elements.brushSizeValue.textContent = this.brushSize + 'px';
+                });
+                
+                // Smoothing parameter controls
+                this.elements.bufferSize.addEventListener('input', (e) => {
+                    this.smoothingBuffer.size = parseInt(e.target.value);
+                    this.elements.bufferSizeValue.textContent = e.target.value;
+                    this.resetSmoothingBuffers();
+                });
+                
+                this.elements.emaAlpha.addEventListener('input', (e) => {
+                    this.cursorEMA.alpha = parseFloat(e.target.value);
+                    this.elements.emaAlphaValue.textContent = parseFloat(e.target.value).toFixed(2);
+                });
+                
+                this.elements.deadzone.addEventListener('input', (e) => {
+                    this.deadzone.threshold = parseFloat(e.target.value);
+                    this.elements.deadzoneValue.textContent = parseFloat(e.target.value).toFixed(3);
+                });
+                
+                this.elements.sensitivity.addEventListener('input', (e) => {
+                    this.mouseSensitivity = parseFloat(e.target.value);
+                    this.elements.sensitivityValue.textContent = parseFloat(e.target.value).toFixed(1);
+                });
+                
+                this.elements.gestureFrames.addEventListener('input', (e) => {
+                    this.gestureStabilityThreshold = parseInt(e.target.value);
+                    this.elements.gestureFramesValue.textContent = e.target.value;
+                });
+                
+                this.elements.scrollThreshold.addEventListener('input', (e) => {
+                    this.scrollMovementThreshold = parseFloat(e.target.value);
+                    this.elements.scrollThresholdValue.textContent = parseFloat(e.target.value).toFixed(3);
+                });
+                
+                this.elements.resetToDefaults.addEventListener('click', () => {
+                    this.resetSmoothingToDefaults();
+                });
+                
+                // Game controls
+                this.elements.startGame.addEventListener('click', () => {
+                    this.startTargetGame();
+                });
+                
+                this.elements.resetGame.addEventListener('click', () => {
+                    this.resetTargetGame();
+                });
+                
+                
+                // Initialize virtual cursor
+                this.initializeVirtualCursor();
+                
+                // Initialize floating camera
+                this.initializeFloatingCamera();
+                
+                // Initialize test activity
+                this.initializeTestActivity();
+            }
+            
+            initializeVirtualCursor() {
+                // Set initial cursor position to center of screen
+                this.virtualCursor.x = window.innerWidth / 2;
+                this.virtualCursor.y = window.innerHeight / 2;
+                this.virtualCursor.restPosition.x = this.virtualCursor.x;
+                this.virtualCursor.restPosition.y = this.virtualCursor.y;
+                
+                // Update cursor display
+                this.updateVirtualCursor('at-rest');
+                
+            }
+            
+            initializeFloatingCamera() {
+                // Floating camera controls
+                this.elements.toggleCamera.addEventListener('click', () => {
+                    this.toggleCamera();
+                });
+                
+                this.elements.minimizeCamera.addEventListener('click', () => {
+                    const container = this.elements.floatingCamera.querySelector('.camera-container');
+                    const info = this.elements.floatingCamera.querySelector('.camera-info');
+                    
+                    if (container.style.display === 'none') {
+                        container.style.display = 'block';
+                        info.style.display = 'block';
+                        this.elements.minimizeCamera.textContent = '➖';
+                    } else {
+                        container.style.display = 'none';
+                        info.style.display = 'none';
+                        this.elements.minimizeCamera.textContent = '➕';
+                    }
+                });
+                
+            }
+            
+            initializeTestActivity() {
+                this.clickCount = 0;
+                
+                // Add event listeners to test buttons
+                document.querySelectorAll('.test-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.clickCount++;
+                        if (this.elements.clickCounter) {
+                            this.elements.clickCounter.textContent = `Total Clicks: ${this.clickCount}`;
+                        }
+                        
+                        const color = btn.dataset.color || 'default';
+                        this.showMessage(`🎯 Clicked ${color} button!`, 'success');
+                        
+                        // Visual feedback
+                        btn.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            btn.style.transform = '';
+                        }, 150);
+                    });
+                });
+                
+            }
+            
+            async initMediaPipe() {
+                try {
+                    console.log('🔧 MEDIAPIPE: Starting MediaPipe Hands initialization');
+                    
+                    // Check if MediaPipe Hands class is available
+                    if (typeof Hands === 'undefined') {
+                        throw new Error('MediaPipe Hands class not found - scripts may not be loaded');
+                    }
+                    console.log('✅ MEDIAPIPE: Hands class found');
+                    
+                    this.hands = new Hands({
+                        locateFile: (file) => {
+                            console.log('📁 MEDIAPIPE: Loading file:', file);
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                        }
+                    });
+                    console.log('🏗️ MEDIAPIPE: Hands instance created');
+                    
+                    this.hands.setOptions({
+                        maxNumHands: 1,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
+                    console.log('⚙️ MEDIAPIPE: Options set');
+                    
+                    this.hands.onResults((results) => {
+                        this.processResults(results);
+                    });
+                    console.log('🔗 MEDIAPIPE: Results handler connected');
+                    
+                    // Wait a moment to ensure everything is ready
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    console.log('✅ MEDIAPIPE: MediaPipe initialized successfully');
+                    this.showMessage('✅ MediaPipe ready for camera!', 'success');
+                    
+                } catch (error) {
+                    console.error('❌ MEDIAPIPE: Detailed error:', {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack
+                    });
+                    console.error('🔍 MEDIAPIPE_DEBUG: Available globals:', {
+                        Hands: typeof Hands !== 'undefined' ? 'OK' : 'MISSING',
+                        Camera: typeof Camera !== 'undefined' ? 'OK' : 'MISSING',
+                        drawConnectors: typeof drawConnectors !== 'undefined' ? 'OK' : 'MISSING'
+                    });
+                    this.showMessage('❌ MediaPipe initialization failed', 'error');
+                    throw error;
+                }
+            }
+            
+            async toggleCamera() {
+                console.log('🎬 CAMERA: Toggle camera called, current state:', this.isDetecting ? 'ON' : 'OFF');
+                
+                if (this.isDetecting) {
+                    // Stop camera
+                    console.log('📹 CAMERA: Stopping camera');
+                    this.isDetecting = false;
+                    if (this.camera) {
+                        console.log('📹 CAMERA: Camera object exists, stopping...');
+                        await this.camera.stop();
+                        console.log('📹 CAMERA: Camera.stop() completed');
+                    } else {
+                        console.log('⚠️ CAMERA: Camera object was null');
+                    }
+                    this.elements.startCamera.textContent = '🎥 Start Camera';
+                    this.elements.startCamera.classList.remove('btn-red');
+                    this.showCameraStatus('Camera stopped');
+                    console.log('✅ CAMERA: Camera stopped successfully');
+                } else {
+                    // Start camera with detailed debugging
+                    try {
+                        console.log('📹 CAMERA: Starting camera initialization');
+                        console.log('🔍 DEBUG: Floating video element:', this.elements.floatingVideo ? 'EXISTS' : 'MISSING');
+                        console.log('🔍 DEBUG: Camera class available:', typeof Camera !== 'undefined' ? 'YES' : 'NO');
+                        
+                        this.showCameraStatus('Initializing MediaPipe...');
+                        
+                        // Initialize MediaPipe first (like gesture-tester.html)
+                        console.log('🔧 CAMERA: Initializing MediaPipe before camera start');
+                        await this.initMediaPipe();
+                        console.log('✅ CAMERA: MediaPipe initialization completed');
+
+                        this.showCameraStatus('Starting camera...');
+                        console.log('📹 CAMERA: Creating camera instance');
+                        
+                        this.camera = new Camera(this.elements.floatingVideo, {
+                            onFrame: async () => {
+                                if (this.hands) {
+                                    await this.hands.send({ image: this.elements.floatingVideo });
+                                }
+                            },
+                            width: 640,
+                            height: 480
+                        });
+                        
+                        console.log('📹 CAMERA: Starting camera stream');
+                        await this.camera.start();
+                        
+                        this.isDetecting = true;
+                        this.elements.startCamera.textContent = '🛑 Stop Camera';
+                        this.elements.startCamera.classList.add('btn-red');
+                        this.showCameraStatus('✅ Camera running - Show your hand!');
+                        console.log('✅ CAMERA: Camera started successfully');
+                        
+                    } catch (error) {
+                        console.error('❌ CAMERA: Failed to start camera:', error);
+                        this.showMessage(`Failed to start camera: ${error.message}`, 'error');
+                        this.showCameraStatus('Camera failed to start');
+                    }
+                }
+            }
+            
+            async loadModel(file) {
+                try {
+                    console.log('📂 MODEL: Starting model load for:', file.name);
+                    this.showStatus('Loading model...');
+                    
+                    const text = await file.text();
+                    console.log('📋 MODEL: File read, size:', text.length, 'chars');
+                    
+                    const data = JSON.parse(text);
+                    console.log('🧠 MODEL: Parsed model data:', {
+                        gestureNames: data.gestureNames,
+                        hasLabelEncoder: !!data.labelEncoder,
+                        hasTrainingData: !!data.trainingData,
+                        trainingDataLength: data.trainingData ? data.trainingData.length : 0
+                    });
+                    
+                    // Validate model data (same as gesture-tester)
+                    if (!data.gestureNames || !data.labelEncoder) {
+                        throw new Error('Invalid model file format');
+                    }
+                    
+                    this.modelData = data;
+                    
+                    // Retrain model with loaded data
+                    console.log('🎯 MODEL: Starting model retraining...');
+                    await this.retrainModel();
+                    console.log('✅ MODEL: Model retrained successfully');
+                    
+                    this.setupGestureMappings();
+                    this.displayModelInfo(file.name);
+                    
+                    console.log('✅ MODEL: Model loaded and ready for prediction');
+                    this.showMessage('✅ Model loaded successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('❌ MODEL: Failed to load model:', error);
+                    this.showMessage(`Failed to load model: ${error.message}`, 'error');
+                }
+            }
+            
+            async retrainModel() {
+                console.log('🔄 RETRAIN: Extracting training data...');
+                const X = this.modelData.trainingData.map(d => d.features);
+                const y = this.modelData.trainingData.map(d => d.label);
+                console.log('📈 RETRAIN: Features X shape:', X.length, 'x', X[0] ? X[0].length : 0);
+                console.log('🏷️ RETRAIN: Labels y:', y.slice(0, 5), '... (showing first 5)');
+
+                const encodedY = y.map(label => this.modelData.labelEncoder[label]);
+                console.log('🔢 RETRAIN: Encoded labels:', encodedY.slice(0, 5), '... (showing first 5)');
+
+                // Create labelDecoder (reverse of labelEncoder)
+                this.modelData.labelDecoder = {};
+                Object.entries(this.modelData.labelEncoder).forEach(([label, code]) => {
+                    this.modelData.labelDecoder[code] = label;
+                });
+                console.log('🗺️ RETRAIN: Label decoder created:', this.modelData.labelDecoder);
+
+                // Create new k-NN classifier
+                const k = this.modelData.k || Math.min(5, Math.floor(Math.sqrt(X.length)));
+                console.log('🤖 RETRAIN: Creating k-NN classifier with k =', k);
+                const knn = new SimpleKNNClassifier(k);
+                knn.train(X, encodedY);
+
+                this.trainedModel = knn;
+                console.log('✅ RETRAIN: k-NN classifier trained and ready');
+            }
+            
+            async loadSchema(file) {
+                try {
+                    console.log('🗺️ SCHEMA: Starting schema load for:', file.name);
+                    
+                    if (!this.modelData) {
+                        console.error('❌ SCHEMA: No model data available');
+                        this.showMessage('Please load a model first', 'error');
+                        return;
+                    }
+                    
+                    this.showStatus('Loading schema...');
+                    
+                    const text = await file.text();
+                    console.log('📋 SCHEMA: File read, size:', text.length, 'chars');
+                    
+                    const schema = JSON.parse(text);
+                    console.log('🧠 SCHEMA: Parsed schema:', schema);
+                    
+                    if (!schema.mapping) {
+                        throw new Error('Invalid schema format: missing mapping object');
+                    }
+                    
+                    console.log('🔄 SCHEMA: Applying mappings...');
+                    this.applySchema(schema);
+                    
+                    // Show detailed feedback
+                    const mappingCount = Object.keys(schema.mapping).length;
+                    console.log('✅ SCHEMA: Schema applied successfully with', mappingCount, 'mappings');
+                    console.log('🗺️ SCHEMA: Final gesture mapping:', this.gestureMapping);
+                    
+                    this.showMessage(`✅ Schema loaded! Applied ${mappingCount} gesture mappings.`, 'success');
+                    this.showStatus(`Schema loaded: ${mappingCount} mappings applied`);
+                    
+                } catch (error) {
+                    console.error('❌ SCHEMA: Failed to load schema:', error);
+                    this.showMessage(`Failed to load schema: ${error.message}`, 'error');
+                    this.showStatus('Schema load failed');
+                }
+            }
+            
+            setupGestureMappings() {
+                const container = this.elements.gestureMappings;
+                container.innerHTML = '';
+                
+                this.gestureMapping = {};
+                this.gestureColors = {}; // New: Store color mappings
+                
+                this.modelData.gestureNames.forEach(gesture => {
+                    const item = document.createElement('div');
+                    item.className = 'mapping-item';
+                    item.style.flexDirection = 'column';
+                    item.style.alignItems = 'stretch';
+                    
+                    // Top row: indicator, label, action select
+                    const topRow = document.createElement('div');
+                    topRow.style.display = 'flex';
+                    topRow.style.alignItems = 'center';
+                    topRow.style.gap = '10px';
+                    topRow.style.marginBottom = '8px';
+                    
+                    const indicator = document.createElement('div');
+                    indicator.className = 'gesture-indicator';
+                    
+                    const label = document.createElement('span');
+                    label.textContent = gesture;
+                    label.style.flex = '1';
+                    label.style.fontSize = '12px';
+                    
+                    const select = document.createElement('select');
+                    select.className = 'mapping-select';
+                    select.innerHTML = `
+                        <option value="">No Action</option>
+                        <option value="leftClick">👆 Left Click</option>
+                        <option value="rightClick">✌️ Right Click</option>
+                        <option value="scroll">📜 Scroll</option>
+                        <option value="normalMotion">🖱️ Mouse Move</option>
+                        <option value="stayRightThere">✋ Stay/Rest</option>
+                    `;
+                    
+                    // Bottom row: color selection
+                    const bottomRow = document.createElement('div');
+                    bottomRow.style.display = 'flex';
+                    bottomRow.style.alignItems = 'center';
+                    bottomRow.style.gap = '10px';
+                    bottomRow.style.paddingLeft = '25px'; // Align with label
+                    
+                    const colorLabel = document.createElement('span');
+                    colorLabel.textContent = 'Cursor Color:';
+                    colorLabel.style.fontSize = '11px';
+                    colorLabel.style.opacity = '0.8';
+                    colorLabel.style.minWidth = '70px';
+                    
+                    const colorSelect = document.createElement('select');
+                    colorSelect.className = 'mapping-select';
+                    colorSelect.style.minWidth = '120px';
+                    colorSelect.innerHTML = `
+                        <option value="">Default</option>
+                        <option value="#FFC107">🟡 Yellow</option>
+                        <option value="#4CAF50">🟢 Green</option>
+                        <option value="#2196F3">🔵 Blue</option>
+                        <option value="#9C27B0">🟣 Violet</option>
+                        <option value="#FF5722">🔴 Red</option>
+                        <option value="#FF9800">🟠 Orange</option>
+                        <option value="#E91E63">🩷 Pink</option>
+                        <option value="#00BCD4">🩵 Cyan</option>
+                    `;
+                    
+                    select.addEventListener('change', (e) => {
+                        const action = e.target.value;
+                        if (action) {
+                            this.gestureMapping[gesture] = action;
+                        } else {
+                            delete this.gestureMapping[gesture];
+                        }
+                        this.updateMappingIndicator(indicator, action);
+                        this.updateSaveButton();
+                    });
+                    
+                    colorSelect.addEventListener('change', (e) => {
+                        const color = e.target.value;
+                        if (color) {
+                            this.gestureColors[gesture] = color;
+                        } else {
+                            delete this.gestureColors[gesture];
+                        }
+                        // Update indicator to show selected color
+                        indicator.style.background = color || '#FFD700';
+                        this.updateSaveButton();
+                    });
+                    
+                    topRow.appendChild(indicator);
+                    topRow.appendChild(label);
+                    topRow.appendChild(select);
+                    
+                    bottomRow.appendChild(colorLabel);
+                    bottomRow.appendChild(colorSelect);
+                    
+                    item.appendChild(topRow);
+                    item.appendChild(bottomRow);
+                    
+                    container.appendChild(item);
+                });
+                
+                this.updateSaveButton();
+            }
+            
+            applySchema(schema) {
+                let appliedCount = 0;
+                
+                // Apply schema mappings and colors to dropdowns
+                document.querySelectorAll('.mapping-item').forEach(item => {
+                    const label = item.querySelector('span');
+                    const gesture = label.textContent;
+                    const action = schema.mapping[gesture];
+                    const color = schema.colors && schema.colors[gesture];
+                    
+                    // Apply action mapping
+                    const actionSelect = item.querySelector('.mapping-select');
+                    if (action && actionSelect) {
+                        actionSelect.value = action;
+                        this.gestureMapping[gesture] = action;
+                        const indicator = item.querySelector('.gesture-indicator');
+                        this.updateMappingIndicator(indicator, action);
+                        appliedCount++;
+                    }
+                    
+                    // Apply color mapping
+                    const colorSelects = item.querySelectorAll('.mapping-select');
+                    const colorSelect = colorSelects[1]; // Second select is the color dropdown
+                    if (color && colorSelect) {
+                        colorSelect.value = color;
+                        this.gestureColors[gesture] = color;
+                        const indicator = item.querySelector('.gesture-indicator');
+                        indicator.style.background = color;
+                    }
+                });
+                
+                this.updateSaveButton();
+            }
+            
+            updateMappingIndicator(indicator, action) {
+                const colors = {
+                    'leftClick': '#4CAF50',
+                    'rightClick': '#f44336',
+                    'scroll': '#2196F3',
+                    'normalMotion': '#9C27B0',
+                    'stayRightThere': '#FF9800',
+                    '': '#FFD700'
+                };
+                indicator.style.background = colors[action] || '#FFD700';
+            }
+            
+            addManualMapping() {
+                const container = this.elements.manualMappings;
+                
+                // Clear placeholder if first item
+                if (container.querySelector('.placeholder')) {
+                    container.innerHTML = '';
+                }
+                
+                const item = document.createElement('div');
+                item.className = 'manual-mapping-item';
+                
+                const gestureInput = document.createElement('input');
+                gestureInput.type = 'text';
+                gestureInput.className = 'manual-input';
+                gestureInput.placeholder = 'Gesture name...';
+                
+                const actionSelect = document.createElement('select');
+                actionSelect.className = 'manual-input';
+                actionSelect.innerHTML = `
+                    <option value="">Select action</option>
+                    <option value="leftClick">👆 Left Click</option>
+                    <option value="rightClick">✌️ Right Click</option>
+                    <option value="scroll">📜 Scroll</option>
+                    <option value="normalMotion">🖱️ Mouse Move</option>
+                    <option value="stayRightThere">✋ Stay/Rest</option>
+                `;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '❌';
+                removeBtn.addEventListener('click', () => {
+                    item.remove();
+                    this.updateManualSaveButton();
+                    if (container.children.length === 0) {
+                        container.innerHTML = '<div class="placeholder">Click "Add Mapping" to create manual gesture mappings</div>';
+                    }
+                });
+                
+                const updateHandler = () => {
+                    this.updateManualSaveButton();
+                };
+                
+                gestureInput.addEventListener('input', updateHandler);
+                actionSelect.addEventListener('change', updateHandler);
+                
+                item.appendChild(gestureInput);
+                item.appendChild(actionSelect);
+                item.appendChild(removeBtn);
+                container.appendChild(item);
+                
+                gestureInput.focus();
+                this.updateManualSaveButton();
+            }
+            
+            clearManualMappings() {
+                this.elements.manualMappings.innerHTML = '<div class="placeholder">Click "Add Mapping" to create manual gesture mappings</div>';
+                this.updateManualSaveButton();
+                this.showMessage('Manual mappings cleared', 'success');
+            }
+            
+            updateSaveButton() {
+                const hasMapping = Object.keys(this.gestureMapping).length > 0;
+                this.elements.saveMapping.disabled = !hasMapping;
+            }
+            
+            updateManualSaveButton() {
+                const items = this.elements.manualMappings.querySelectorAll('.manual-mapping-item');
+                const hasValid = Array.from(items).some(item => {
+                    const input = item.querySelector('input');
+                    const select = item.querySelector('select');
+                    return input.value.trim() && select.value;
+                });
+                this.elements.saveManualMapping.disabled = !hasValid;
+            }
+            
+            saveMappingSchema() {
+                if (Object.keys(this.gestureMapping).length === 0) {
+                    this.showMessage('No mappings to save', 'error');
+                    return;
+                }
+                
+                const schema = {
+                    name: `mapping_${new Date().toISOString().slice(0, 16).replace(/[:-]/g, '')}`,
+                    type: 'model-based',
+                    createdAt: new Date().toISOString(),
+                    mapping: this.gestureMapping,
+                    colors: this.gestureColors || {}, // Include color mappings
+                    gestureCount: Object.keys(this.gestureMapping).length
+                };
+                
+                this.downloadJSON(schema, `${schema.name}.json`);
+                this.showMessage('✅ Mapping schema with colors saved!', 'success');
+            }
+            
+            saveManualMappingSchema() {
+                const items = this.elements.manualMappings.querySelectorAll('.manual-mapping-item');
+                const mappings = {};
+                
+                items.forEach(item => {
+                    const input = item.querySelector('input');
+                    const select = item.querySelector('select');
+                    if (input.value.trim() && select.value) {
+                        mappings[input.value.trim()] = select.value;
+                    }
+                });
+                
+                if (Object.keys(mappings).length === 0) {
+                    this.showMessage('No valid mappings to save', 'error');
+                    return;
+                }
+                
+                const schema = {
+                    name: `manual_${new Date().toISOString().slice(0, 16).replace(/[:-]/g, '')}`,
+                    type: 'manual',
+                    createdAt: new Date().toISOString(),
+                    mapping: mappings,
+                    gestureCount: Object.keys(mappings).length
+                };
+                
+                this.downloadJSON(schema, `${schema.name}.json`);
+                this.showMessage('✅ Manual mapping saved!', 'success');
+            }
+            
+            loadManualMappingFile() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.loadManualMapping(e.target.files[0]);
+                    }
+                });
+                input.click();
+            }
+            
+            async loadManualMapping(file) {
+                try {
+                    const text = await file.text();
+                    const schema = JSON.parse(text);
+                    
+                    if (!schema.mapping) {
+                        throw new Error('Invalid manual mapping format');
+                    }
+                    
+                    // Clear existing
+                    this.clearManualMappings();
+                    
+                    // Load mappings
+                    Object.entries(schema.mapping).forEach(([gesture, action]) => {
+                        this.addManualMapping();
+                        const items = this.elements.manualMappings.querySelectorAll('.manual-mapping-item');
+                        const lastItem = items[items.length - 1];
+                        
+                        if (lastItem) {
+                            const input = lastItem.querySelector('input');
+                            const select = lastItem.querySelector('select');
+                            input.value = gesture;
+                            select.value = action;
+                        }
+                    });
+                    
+                    this.updateManualSaveButton();
+                    this.showMessage('✅ Manual mapping loaded!', 'success');
+                    
+                } catch (error) {
+                    this.showMessage(`Failed to load: ${error.message}`, 'error');
+                }
+            }
+            
+            processResults(results) {
+                console.log('🔍 PROCESS: Processing MediaPipe results, hands detected:', 
+                    results.multiHandLandmarks ? results.multiHandLandmarks.length : 0);
+                
+                const ctx = this.elements.floatingCanvas.getContext('2d');
+                ctx.clearRect(0, 0, this.elements.floatingCanvas.width, this.elements.floatingCanvas.height);
+                
+                // Set canvas size to match video
+                this.elements.floatingCanvas.width = this.elements.floatingVideo.videoWidth || 320;
+                this.elements.floatingCanvas.height = this.elements.floatingVideo.videoHeight || 180;
+                
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    console.log('✋ HAND: Hand detected with', results.multiHandLandmarks[0].length, 'landmarks');
+                    const landmarks = results.multiHandLandmarks[0];
+                    
+                    // Check if we're returning from out-of-frame
+                    if (!this.lastFrameHadHand) {
+                        this.needsReferenceUpdate = true;
+                        console.log('🔄 RETURN: Hand returned to frame, will reset reference');
+                    }
+                    this.lastFrameHadHand = true;
+                    
+                    // Draw hand landmarks
+                    this.drawHandLandmarks(ctx, landmarks);
+                    
+                    // Predict gesture using trained model or fallback
+                    const currentGesture = this.predictGesture(landmarks);
+                    console.log('👋 GESTURE: Predicted gesture:', currentGesture, 
+                        'Confidence:', this.currentConfidence ? (this.currentConfidence * 100).toFixed(1) + '%' : 'N/A');
+                    
+                    // Apply gesture stability check
+                    if (currentGesture === this.lastGesture) {
+                        this.gestureHoldTime++;
+                    } else {
+                        this.gestureHoldTime = 0;
+                        this.lastGesture = currentGesture;
+                    }
+                    
+                    console.log('⏱️ STABILITY: Gesture hold time:', this.gestureHoldTime, '/', this.gestureStabilityThreshold);
+                    
+                    // Only process gesture if it's been stable for enough frames
+                    if (this.gestureHoldTime >= this.gestureStabilityThreshold) {
+                        console.log('✅ STABLE: Executing stable gesture:', currentGesture);
+                        this.executeGesture(currentGesture, landmarks);
+                    }
+                    
+                    // Update display
+                    this.updateGestureDisplay(currentGesture);
+                    
+                    // Update floating camera info
+                    this.elements.floatingGesture.textContent = currentGesture;
+                    this.elements.handCount.textContent = results.multiHandLandmarks.length;
+                    this.elements.gestureConfidence.textContent = this.currentConfidence ? 
+                        `${(this.currentConfidence * 100).toFixed(1)}%` : '85%';
+                    
+                } else {
+                    console.log('❌ HAND: No hand detected - cursor stays at:', Math.round(this.virtualCursor.x), Math.round(this.virtualCursor.y));
+                    this.elements.currentGesture.textContent = 'No hand detected';
+                    this.elements.floatingGesture.textContent = 'No hand detected';
+                    this.elements.handCount.textContent = '0';
+                    this.elements.gestureConfidence.textContent = '0%';
+                    this.lastFrameHadHand = false;
+                    this.setVirtualCursorAtRest();
+                }
+            }
+            
+            predictGesture(landmarks) {
+                console.log('🤖 PREDICT: Starting gesture prediction...');
+                console.log('🧠 PREDICT: Has trained model:', !!this.trainedModel, 'Has model data:', !!this.modelData);
+                
+                if (!this.trainedModel || !this.modelData) {
+                    // Fallback to simple gesture if no trained model
+                    console.log('⚠️ PREDICT: No trained model, using simple gesture recognition');
+                    this.currentConfidence = 0;
+                    const simpleGesture = this.recognizeSimpleGesture(landmarks);
+                    console.log('🔍 PREDICT: Simple gesture result:', simpleGesture);
+                    return simpleGesture;
+                }
+
+                try {
+                    // Extract features (same as gesture-tester)
+                    console.log('🔧 PREDICT: Extracting features from landmarks...');
+                    const features = this.extractFeatures(landmarks);
+                    console.log('📈 PREDICT: Extracted', features.length, 'features');
+
+                    // Make prediction with confidence
+                    console.log('🔮 PREDICT: Making prediction with k-NN...');
+                    const predResult = this.trainedModel.predictWithConfidence(features);
+                    const predictedLabel = this.modelData.labelDecoder[predResult.prediction];
+                    const confidence = predResult.confidence;
+                    
+                    console.log('🎯 PREDICT: Raw prediction:', predResult.prediction, 
+                        '-> Label:', predictedLabel, 'Confidence:', (confidence * 100).toFixed(1) + '%');
+                    
+                    this.currentConfidence = confidence;
+
+                    // Only use prediction if confidence is high enough
+                    if (confidence > 0.6) {
+                        console.log('✅ PREDICT: High confidence, using trained model prediction:', predictedLabel);
+                        return predictedLabel;
+                    } else {
+                        // Fallback to simple gesture
+                        console.log('⚠️ PREDICT: Low confidence, falling back to simple gesture');
+                        const simpleGesture = this.recognizeSimpleGesture(landmarks);
+                        console.log('🔍 PREDICT: Fallback result:', simpleGesture);
+                        return simpleGesture;
+                    }
+
+                } catch (error) {
+                    // Fallback to simple gesture on error
+                    console.error('❌ PREDICT: Error during prediction:', error);
+                    this.currentConfidence = 0;
+                    const simpleGesture = this.recognizeSimpleGesture(landmarks);
+                    console.log('🔍 PREDICT: Error fallback result:', simpleGesture);
+                    return simpleGesture;
+                }
+            }
+            
+            extractFeatures(landmarks) {
+                // Same feature extraction as gesture-tester
+                const features = [];
+
+                // 1. Raw coordinates
+                landmarks.forEach(landmark => {
+                    features.push(landmark.x, landmark.y, landmark.z);
+                });
+
+                // 2. Distances between key points
+                const keyPoints = [0, 4, 8, 12, 16, 20];
+                for (let i = 0; i < keyPoints.length; i++) {
+                    for (let j = i + 1; j < keyPoints.length; j++) {
+                        const p1 = landmarks[keyPoints[i]];
+                        const p2 = landmarks[keyPoints[j]];
+                        const distance = Math.sqrt(
+                            Math.pow(p1.x - p2.x, 2) +
+                            Math.pow(p1.y - p2.y, 2) +
+                            Math.pow(p1.z - p2.z, 2)
+                        );
+                        features.push(distance);
+                    }
+                }
+
+                // 3. Angles between finger segments
+                const fingerChains = [
+                    [1, 2, 3, 4],
+                    [5, 6, 7, 8],
+                    [9, 10, 11, 12],
+                    [13, 14, 15, 16],
+                    [17, 18, 19, 20]
+                ];
+
+                fingerChains.forEach(chain => {
+                    for (let i = 0; i < chain.length - 2; i++) {
+                        const p1 = landmarks[chain[i]];
+                        const p2 = landmarks[chain[i + 1]];
+                        const p3 = landmarks[chain[i + 2]];
+
+                        const angle = this.calculateAngle(p1, p2, p3);
+                        features.push(angle);
+                    }
+                });
+
+                return features;
+            }
+
+            calculateAngle(p1, p2, p3) {
+                const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+                const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+
+                const dot = v1.x * v2.x + v1.y * v2.y;
+                const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+                const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+
+                return Math.acos(dot / (mag1 * mag2));
+            }
+            
+            recognizeSimpleGesture(landmarks) {
+                // Simple gesture recognition fallback
+                const indexTip = landmarks[8];
+                const indexPip = landmarks[6];
+                const middleTip = landmarks[12];
+                const middlePip = landmarks[10];
+                const thumbTip = landmarks[4];
+                const thumbMcp = landmarks[2]; // Use MCP for better thumb detection
+                const wrist = landmarks[0];
+                
+                // Check finger extensions (y decreases upward)
+                const indexExtended = indexTip.y < indexPip.y;
+                const middleExtended = middleTip.y < middlePip.y;
+                
+                // Better thumb detection: check distance from wrist
+                const thumbWristDist = Math.abs(thumbTip.x - wrist.x);
+                const thumbMcpWristDist = Math.abs(thumbMcp.x - wrist.x);
+                const thumbExtended = thumbWristDist > thumbMcpWristDist;
+                
+                console.log('🔍 SIMPLE: Fingers - Index:', indexExtended, 'Middle:', middleExtended, 'Thumb:', thumbExtended);
+                
+                // Return gesture names that match the 5 functions
+                if (indexExtended && middleExtended && !thumbExtended) {
+                    return 'normalMotion'; // Mouse move gesture (peace sign)
+                } else if (indexExtended && !middleExtended && !thumbExtended) {
+                    return 'leftClick'; // Left click gesture (pointing)
+                } else if (!indexExtended && !middleExtended && thumbExtended) {
+                    return 'rightClick'; // Right click gesture (thumbs up)
+                } else if (!indexExtended && !middleExtended && !thumbExtended) {
+                    return 'stayRightThere'; // Stay/rest gesture (fist)
+                } else if (indexExtended && middleExtended && thumbExtended) {
+                    return 'scroll'; // Scroll gesture (all fingers extended)
+                } else if (middleExtended && !indexExtended) {
+                    return 'scroll'; // Scroll gesture (middle finger up)
+                } else {
+                    return 'scroll'; // Scroll gesture (other combinations)
+                }
+            }
+            
+            executeGesture(gestureName, landmarks) {
+                // Map gesture to the 5 core mouse functions
+                const mappedAction = this.gestureMapping[gestureName] || gestureName;
+                console.log('🎯 EXECUTE: Gesture mapping:', gestureName, '->', mappedAction, 'Cursor at:', Math.round(this.virtualCursor.x) + ',' + Math.round(this.virtualCursor.y));
+                console.log('🗺️ EXECUTE: Current gesture mappings:', this.gestureMapping);
+                
+                // Reset scroll tracking when not in scroll mode
+                if (mappedAction !== 'scroll') {
+                    this.previousScrollY = null;
+                }
+                
+                // Don't reset navigation - maintain cursor position continuity
+                // Navigation reference will be updated when needed, cursor stays where it is
+                
+                // Reset smoothing buffer for clean gesture transitions (keep navigation state)
+                if (mappedAction !== this.lastProcessedAction) {
+                    // Only reset position buffer, keep navigation reference
+                    this.smoothingBuffer.positions = [];
+                    this.smoothingBuffer.index = 0;
+                    
+                    // IMPORTANT: When transitioning TO mouse move from any other gesture,
+                    // set needsReferenceUpdate to maintain cursor continuity
+                    if (mappedAction === 'normalMotion' && this.lastProcessedAction !== 'normalMotion') {
+                        this.needsReferenceUpdate = true;
+                        console.log('🔄 TRANSITION: Moving from', this.lastProcessedAction, 'to mouse move - will maintain cursor position');
+                    }
+                    
+                    // IMPORTANT: When transitioning AWAY from drawing (leftClick),
+                    // stop the current drawing stroke to prevent unwanted connecting lines
+                    if (this.lastProcessedAction === 'leftClick' && mappedAction !== 'leftClick') {
+                        if (this.isDrawing) {
+                            this.isDrawing = false;
+                            console.log('🎨 TRANSITION: Stopped drawing stroke when switching to', mappedAction);
+                            this.showMessage('🎨 Drawing stroke ended', 'info');
+                        }
+                    }
+                    
+                    this.lastProcessedAction = mappedAction;
+                }
+                
+                switch (mappedAction) {
+                    case 'stayRightThere':
+                        console.log('✋ EXECUTE: Stay at rest');
+                        this.mouseStayAtRest();
+                        break;
+                    case 'leftClick':
+                        console.log('🖘 EXECUTE: Left click');
+                        this.mouseLeftClick(landmarks);
+                        break;
+                    case 'rightClick':
+                        console.log('🖙 EXECUTE: Right click');
+                        this.mouseRightClick(landmarks);
+                        break;
+                    case 'normalMotion':
+                        console.log('👆 EXECUTE: Mouse move');
+                        this.mouseMove(landmarks);
+                        break;
+                    case 'scroll':
+                        console.log('📜 EXECUTE: Scroll');
+                        this.mouseScroll(landmarks);
+                        break;
+                    default:
+                        // Fallback - if no mapping, use normalMotion for cursor movement
+                        console.log('⚠️ EXECUTE: Unknown mapping, defaulting to mouse move');
+                        this.mouseMove(landmarks);
+                        break;
+                }
+            }
+            
+            // === CORE 5 MOUSE FUNCTIONS ===
+            
+            // 1. Stay at Rest - Cursor stays in current position for hand relaxation
+            mouseStayAtRest() {
+                this.virtualCursor.isAtRest = true;
+                // Cursor stays at current position - no movement
+                this.updateVirtualCursor('at-rest');
+            }
+            
+            // 2. Mouse Move - Navigate cursor around screen (no clicking)
+            mouseMove(landmarks) {
+                this.virtualCursor.isAtRest = false;
+                
+                // Get smoothed hand position to reduce MediaPipe jitter
+                const indexTip = landmarks[8];
+                const smoothedPosition = this.smoothHandPosition(indexTip);
+                
+                // Handle reference position update without cursor movement
+                if (!this.mouseNavigationActive || !this.handReferenceX || !this.handReferenceY || this.needsReferenceUpdate) {
+                    // Store the smoothed hand position as NEW reference, keep cursor exactly where it is
+                    this.handReferenceX = smoothedPosition.x;
+                    this.handReferenceY = smoothedPosition.y;
+                    // Keep EMA perfectly aligned with current cursor position
+                    this.cursorEMA.x = this.virtualCursor.x;
+                    this.cursorEMA.y = this.virtualCursor.y;
+                    this.mouseNavigationActive = true;
+                    this.needsReferenceUpdate = false; // Clear the flag
+                    console.log('👆 NAVIGATION: Reference reset to new hand position, cursor STAYS at:', Math.round(this.virtualCursor.x), Math.round(this.virtualCursor.y));
+                    this.updateVirtualCursor('moving');
+                    return;
+                }
+                
+                // Calculate relative movement from reference position using smoothed data
+                const deltaX = smoothedPosition.x - this.handReferenceX;
+                const deltaY = smoothedPosition.y - this.handReferenceY;
+                
+                // Apply deadzone filter to ignore micro-movements
+                if (Math.abs(deltaX) < this.deadzone.threshold && Math.abs(deltaY) < this.deadzone.threshold) {
+                    // No significant movement detected, keep cursor stable
+                    this.updateVirtualCursor('moving');
+                    return;
+                }
+                
+                // Apply movement to cursor with tunable sensitivity
+                const sensitivity = this.mouseSensitivity;
+                
+                const targetX = this.virtualCursor.x - (deltaX * window.innerWidth * sensitivity); // Mirror X
+                const targetY = this.virtualCursor.y + (deltaY * window.innerHeight * sensitivity);
+                
+                // Apply exponential moving average for final smoothing
+                this.cursorEMA.x = this.cursorEMA.alpha * targetX + (1 - this.cursorEMA.alpha) * this.cursorEMA.x;
+                this.cursorEMA.y = this.cursorEMA.alpha * targetY + (1 - this.cursorEMA.alpha) * this.cursorEMA.y;
+                
+                // Update cursor position with bounds checking
+                this.virtualCursor.x = Math.max(0, Math.min(window.innerWidth - 24, this.cursorEMA.x));
+                this.virtualCursor.y = Math.max(0, Math.min(window.innerHeight - 24, this.cursorEMA.y));
+                
+                // Update reference position for next frame
+                this.handReferenceX = smoothedPosition.x;
+                this.handReferenceY = smoothedPosition.y;
+                
+                this.updateVirtualCursor('moving');
+                
+                // Mouse move NEVER draws - only left click draws in drawing area
+            }
+            
+            // Hand position smoothing to reduce MediaPipe jitter
+            smoothHandPosition(handPosition) {
+                // Add current position to rolling buffer
+                if (this.smoothingBuffer.positions.length < this.smoothingBuffer.size) {
+                    this.smoothingBuffer.positions.push({ x: handPosition.x, y: handPosition.y });
+                } else {
+                    this.smoothingBuffer.positions[this.smoothingBuffer.index] = { x: handPosition.x, y: handPosition.y };
+                    this.smoothingBuffer.index = (this.smoothingBuffer.index + 1) % this.smoothingBuffer.size;
+                }
+                
+                // Calculate weighted average with more recent positions having higher weight
+                let totalWeight = 0;
+                let weightedSumX = 0;
+                let weightedSumY = 0;
+                
+                for (let i = 0; i < this.smoothingBuffer.positions.length; i++) {
+                    const weight = (i + 1) / this.smoothingBuffer.positions.length; // Linear weighting
+                    totalWeight += weight;
+                    weightedSumX += this.smoothingBuffer.positions[i].x * weight;
+                    weightedSumY += this.smoothingBuffer.positions[i].y * weight;
+                }
+                
+                return {
+                    x: weightedSumX / totalWeight,
+                    y: weightedSumY / totalWeight
+                };
+            }
+            
+            // Reset smoothing buffers for clean gesture transitions
+            resetSmoothingBuffers() {
+                this.smoothingBuffer.positions = [];
+                this.smoothingBuffer.index = 0;
+            }
+            
+            // Reset all smoothing parameters to best default values
+            resetSmoothingToDefaults() {
+                // Set default values
+                this.smoothingBuffer.size = 5;
+                this.cursorEMA.alpha = 0.3;
+                this.deadzone.threshold = 0.003;
+                this.mouseSensitivity = 2.5;
+                this.gestureStabilityThreshold = 3;
+                this.scrollMovementThreshold = 0.008;
+                
+                // Update UI controls
+                this.elements.bufferSize.value = 5;
+                this.elements.bufferSizeValue.textContent = '5';
+                this.elements.emaAlpha.value = 0.3;
+                this.elements.emaAlphaValue.textContent = '0.30';
+                this.elements.deadzone.value = 0.003;
+                this.elements.deadzoneValue.textContent = '0.003';
+                this.elements.sensitivity.value = 2.5;
+                this.elements.sensitivityValue.textContent = '2.5';
+                this.elements.gestureFrames.value = 3;
+                this.elements.gestureFramesValue.textContent = '3';
+                this.elements.scrollThreshold.value = 0.008;
+                this.elements.scrollThresholdValue.textContent = '0.008';
+                
+                // Reset smoothing buffers
+                this.resetSmoothingBuffers();
+                
+                console.log('🎛️ TUNING: Reset all parameters to best default values');
+            }
+            
+            // Check if cursor is inside drawing canvas
+            isInsideDrawingCanvas() {
+                if (this.currentActivity !== 'drawing') return false;
+                
+                const canvas = this.elements.drawingCanvas;
+                const rect = canvas.getBoundingClientRect();
+                const x = this.virtualCursor.x;
+                const y = this.virtualCursor.y;
+                
+                return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+            }
+            
+            // 3. Left Click - Select items/buttons OR draw dynamically at cursor position
+            mouseLeftClick(landmarks) {
+                this.virtualCursor.isAtRest = false;
+                
+                // For drawing activity: move cursor AND draw continuously
+                if (this.currentActivity === 'drawing') {
+                    // Move cursor first (like mouse navigation)
+                    this.mouseMove(landmarks);
+                    // Check for interface clicks (buttons, etc.) BEFORE drawing
+                    this.checkInterfaceClick(this.virtualCursor.x, this.virtualCursor.y);
+                    // Then perform drawing action at new cursor position
+                    this.performContinuousDrawing();
+                } else {
+                    // For other activities: just perform click action at current cursor position
+                    this.performLeftClickAction();
+                }
+                
+                this.updateVirtualCursor('clicking');
+                
+                // Reset cursor appearance after click
+                setTimeout(() => {
+                    this.updateVirtualCursor('normal');
+                }, 200);
+            }
+            
+            // 4. Right Click - Context menu/secondary action
+            mouseRightClick(landmarks) {
+                // Don't move cursor during click - just right click at current position
+                this.virtualCursor.isAtRest = false;
+                
+                // Perform right click action at current cursor position
+                this.performRightClickAction();
+                this.updateVirtualCursor('right-clicking');
+                
+                // Reset cursor appearance after click
+                setTimeout(() => {
+                    this.updateVirtualCursor('normal');
+                }, 200);
+            }
+            
+            // 5. Scroll - Direct movement-based scrolling
+            mouseScroll(landmarks) {
+                // Get smoothed hand position to reduce scroll jitter
+                const indexTip = landmarks[8];
+                const smoothedPosition = this.smoothHandPosition(indexTip);
+                
+                if (!this.previousScrollY || this.needsReferenceUpdate) {
+                    this.previousScrollY = smoothedPosition.y;
+                    this.needsReferenceUpdate = false; // Clear flag for scroll
+                    console.log('📜 SCROLL: Reference updated for scroll, cursor stays at:', Math.round(this.virtualCursor.x), Math.round(this.virtualCursor.y));
+                    this.updateVirtualCursor('scrolling');
+                    return;
+                }
+                
+                // Calculate movement direction using smoothed data
+                const currentY = smoothedPosition.y;
+                const movement = currentY - this.previousScrollY;
+                
+                // Direct movement to scroll direction with tunable threshold
+                if (Math.abs(movement) > this.scrollMovementThreshold) {
+                    if (movement < 0) {
+                        this.scrollDirection = 1; // Hand moved up = scroll page down
+                    } else {
+                        this.scrollDirection = -1; // Hand moved down = scroll page up  
+                    }
+                    
+                    this.performScrollAction();
+                    this.previousScrollY = currentY; // Update only when scrolling
+                }
+                
+                this.updateVirtualCursor('scrolling');
+            }
+            
+            // Update virtual cursor position and appearance
+            updateVirtualCursor(state = 'normal') {
+                const cursor = this.elements.globalVirtualCursor;
+                
+                // Update position
+                cursor.style.left = this.virtualCursor.x + 'px';
+                cursor.style.top = this.virtualCursor.y + 'px';
+                
+                // Update appearance based on detected gesture (not just action state)
+                const gestureColors = this.getGestureBasedColors();
+                
+                if (gestureColors) {
+                    // Use gesture-based colors
+                    cursor.className = 'virtual-cursor';
+                    cursor.style.background = gestureColors.background;
+                    cursor.style.boxShadow = gestureColors.boxShadow;
+                } else {
+                    // Fallback to state-based appearance
+                    cursor.className = `virtual-cursor ${state}`;
+                    cursor.style.background = '';
+                    cursor.style.boxShadow = '';
+                }
+                
+                // Update position display
+                this.elements.cursorPosition.textContent = 
+                    `${Math.round(this.virtualCursor.x)}, ${Math.round(this.virtualCursor.y)}`;
+            }
+            
+            // Get cursor colors based on actual detected gesture
+            getGestureBasedColors() {
+                const currentGesture = this.lastGesture;
+                
+                // Check if user has set custom colors for gestures
+                if (this.gestureColors && this.gestureColors[currentGesture]) {
+                    const color = this.gestureColors[currentGesture];
+                    return {
+                        background: color,
+                        boxShadow: `0 0 15px ${this.hexToRgba(color, 0.6)}`
+                    };
+                }
+                
+                // Fallback to default action-based colors if no custom color is set
+                const gestureColorMap = {
+                    'stayRightThere': { // Open hand/stay at rest
+                        background: '#FFC107', // Yellow
+                        boxShadow: '0 0 15px rgba(255, 193, 7, 0.6)'
+                    },
+                    'normalMotion': { // Point/mouse move  
+                        background: '#4CAF50', // Green
+                        boxShadow: '0 0 15px rgba(76, 175, 80, 0.6)'
+                    },
+                    'rightClick': { // Wrist/right click
+                        background: '#2196F3', // Blue
+                        boxShadow: '0 0 15px rgba(33, 150, 243, 0.6)'
+                    },
+                    'scroll': { // Two finger/scroll
+                        background: '#9C27B0', // Violet
+                        boxShadow: '0 0 15px rgba(156, 39, 176, 0.6)'
+                    },
+                    'leftClick': { // Pinch/left click
+                        background: '#FF5722', // Red
+                        boxShadow: '0 0 15px rgba(255, 87, 34, 0.6)'
+                    }
+                };
+                
+                return gestureColorMap[currentGesture] || null;
+            }
+            
+            // Helper function to convert hex to rgba
+            hexToRgba(hex, alpha) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            
+            updateGestureDisplay(gesture) {
+                this.elements.currentGesture.textContent = gesture;
+            }
+            
+            setVirtualCursorAtRest() {
+                this.virtualCursor.isAtRest = true;
+                this.updateVirtualCursor('at-rest');
+            }
+            
+            drawHandLandmarks(ctx, landmarks) {
+                // Draw connections using MediaPipe's built-in function
+                drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
+                
+                // Draw landmarks with color coding
+                for (let i = 0; i < landmarks.length; i++) {
+                    const landmark = landmarks[i];
+                    const x = landmark.x * this.elements.floatingCanvas.width;
+                    const y = landmark.y * this.elements.floatingCanvas.height;
+                    
+                    // Color coding like gesture-tester
+                    if (i === 0) ctx.fillStyle = '#FF0000';
+                    else if (i <= 4) ctx.fillStyle = '#FF6600';
+                    else if (i <= 8) ctx.fillStyle = '#FFFF00';
+                    else if (i <= 12) ctx.fillStyle = '#00FF00';
+                    else if (i <= 16) ctx.fillStyle = '#0066FF';
+                    else ctx.fillStyle = '#9900FF';
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+            
+            // Removed old drawing methods - now using MediaPipe's built-in drawConnectors
+            
+            // Action handlers for different activities
+            performLeftClickAction() {
+                const x = this.virtualCursor.x;
+                const y = this.virtualCursor.y;
+                
+                if (this.currentActivity === 'target') {
+                    this.checkTargetHit();
+                }
+                
+                // Check if clicking on any buttons or interface elements
+                this.checkInterfaceClick(x, y);
+            }
+            
+            // New method for continuous drawing during left click gesture
+            performContinuousDrawing() {
+                const x = this.virtualCursor.x;
+                const y = this.virtualCursor.y;
+                
+                const canvas = this.elements.drawingCanvas;
+                const rect = canvas.getBoundingClientRect();
+                const canvasX = x - rect.left;
+                const canvasY = y - rect.top;
+                
+                // Only draw if cursor is within canvas bounds
+                if (canvasX >= 0 && canvasX <= canvas.width && canvasY >= 0 && canvasY <= canvas.height) {
+                    const ctx = canvas.getContext('2d');
+                    
+                    if (!this.isDrawing) {
+                        // Start drawing: set drawing mode and start point
+                        this.isDrawing = true;
+                        this.lastDrawPoint = { x: canvasX, y: canvasY };
+                        
+                        // Draw a dot at the starting point
+                        ctx.fillStyle = this.brushColor;
+                        ctx.beginPath();
+                        ctx.arc(canvasX, canvasY, this.brushSize / 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        console.log('🎨 DRAW: Started continuous drawing at', Math.round(canvasX), Math.round(canvasY));
+                        this.showMessage('🎨 Drawing started - move hand to draw dynamically', 'info');
+                    } else {
+                        // Continue drawing: draw line from last point to current point
+                        ctx.strokeStyle = this.brushColor;
+                        ctx.lineWidth = this.brushSize;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.shadowBlur = 2;
+                        ctx.shadowColor = this.brushColor;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
+                        ctx.lineTo(canvasX, canvasY);
+                        ctx.stroke();
+                        
+                        // Update last draw point
+                        this.lastDrawPoint = { x: canvasX, y: canvasY };
+                        
+                        console.log('🎨 DRAW: Continuous drawing to', Math.round(canvasX), Math.round(canvasY));
+                    }
+                } else {
+                    // Outside canvas - stop drawing
+                    if (this.isDrawing) {
+                        this.isDrawing = false;
+                        console.log('🎨 DRAW: Stopped drawing (outside canvas)');
+                        this.showMessage('🛑 Drawing stopped (moved outside canvas)', 'info');
+                    }
+                }
+            }
+            
+            performRightClickAction() {
+                const x = this.virtualCursor.x;
+                const y = this.virtualCursor.y;
+                
+                if (this.currentActivity === 'drawing') {
+                    const canvas = this.elements.drawingCanvas;
+                    const rect = canvas.getBoundingClientRect();
+                    
+                    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                        // Inside canvas: erase at cursor position
+                        const ctx = canvas.getContext('2d');
+                        ctx.globalCompositeOperation = 'destination-out';
+                        ctx.beginPath();
+                        ctx.arc(x - rect.left, y - rect.top, this.brushSize * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalCompositeOperation = 'source-over';
+                        console.log('🧹 ERASE: Erased at', Math.round(x - rect.left), Math.round(y - rect.top));
+                    }
+                    
+                    // Always stop drawing mode when right-clicking
+                    if (this.isDrawing) {
+                        this.isDrawing = false;
+                        this.showMessage('🛑 Drawing stopped', 'info');
+                        console.log('🛑 DRAW: Stopped drawing mode');
+                    }
+                }
+                
+            }
+            
+            performScrollAction() {
+                if (this.scrollDirection === 0) return;
+                
+                const scrollAmount = 30 * this.scrollDirection;
+                
+                if (this.currentActivity === 'target' && this.elements.scrollTestArea) {
+                    // Scroll the test area
+                    this.elements.scrollTestArea.scrollBy(0, scrollAmount);
+                } else {
+                    // Scroll the main page
+                    window.scrollBy(0, scrollAmount);
+                }
+            }
+            
+            checkInterfaceClick(x, y) {
+                // Check if clicking on buttons or interface elements
+                const elements = document.elementsFromPoint(x, y);
+                const clickableElement = elements.find(el => 
+                    el.tagName === 'BUTTON' || 
+                    el.tagName === 'A' || 
+                    el.classList.contains('btn') ||
+                    el.classList.contains('activity-btn')
+                );
+                
+                if (clickableElement && !clickableElement.disabled) {
+                    // Trigger visual feedback
+                    clickableElement.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        clickableElement.style.transform = '';
+                    }, 150);
+                    
+                    // Trigger click
+                    clickableElement.click();
+                    
+                    this.showMessage(`Clicked: ${clickableElement.textContent}`, 'success');
+                }
+            }
+            
+            // Activity Management
+            switchActivity(activityName) {
+                // Update active button
+                document.querySelectorAll('.activity-btn').forEach(btn => btn.classList.remove('active'));
+                this.elements[activityName + 'Activity'].classList.add('active');
+                
+                // Update active view
+                document.querySelectorAll('.activity-view').forEach(view => view.classList.remove('active'));
+                this.elements[activityName + 'View'].classList.add('active');
+                
+                this.currentActivity = activityName;
+                
+                // Initialize activity-specific features
+                if (activityName === 'drawing') {
+                    this.initDrawingActivity();
+                } else if (activityName === 'target') {
+                    this.initTargetActivity();
+                }
+                
+            }
+            
+            // Drawing Activity Methods
+            initDrawingActivity() {
+                const canvas = this.elements.drawingCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas with dark background
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Set up drawing context for smooth drawing
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = this.brushSize;
+                ctx.strokeStyle = this.brushColor;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.shadowBlur = 2; // Add slight glow effect
+                ctx.shadowColor = this.brushColor;
+                
+                this.isDrawing = false;
+                console.log('🎨 DRAWING: Canvas initialized with size', canvas.width, 'x', canvas.height);
+            }
+            
+            clearDrawingCanvas() {
+                const canvas = this.elements.drawingCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                // Clear and restore dark background
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                this.showMessage('🎨 Canvas cleared!', 'success');
+            }
+            
+            changeBrushColor() {
+                const colors = ['#4CAF50', '#2196F3', '#FF9800', '#f44336', '#9C27B0', '#FF6B6B', '#4ECDC4'];
+                const currentIndex = colors.indexOf(this.brushColor);
+                this.brushColor = colors[(currentIndex + 1) % colors.length];
+                
+                // Update canvas context
+                if (this.currentActivity === 'drawing') {
+                    const ctx = this.elements.drawingCanvas.getContext('2d');
+                    ctx.strokeStyle = this.brushColor;
+                }
+                
+                this.showMessage(`Brush color: ${this.brushColor}`, 'success');
+            }
+            
+            // Target Game Methods
+            initTargetActivity() {
+                this.resetTargetGame();
+            }
+            
+            startTargetGame() {
+                if (this.gameState.isPlaying) return;
+                
+                this.gameState.isPlaying = true;
+                this.gameState.timeLeft = 30;
+                this.elements.startGame.textContent = '⏸️ Playing...';
+                this.elements.startGame.disabled = true;
+                
+                // Start game timer
+                this.gameState.gameTimer = setInterval(() => {
+                    this.gameState.timeLeft--;
+                    this.elements.timer.textContent = this.gameState.timeLeft;
+                    
+                    if (this.gameState.timeLeft <= 0) {
+                        this.endTargetGame();
+                    }
+                }, 1000);
+                
+                // Spawn targets
+                this.spawnTarget();
+                
+                this.showMessage('🎯 Game started! Hit targets with gestures!', 'success');
+            }
+            
+            spawnTarget() {
+                if (!this.gameState.isPlaying) return;
+                
+                const gameArea = this.elements.gameArea;
+                const target = document.createElement('div');
+                target.className = 'target';
+                
+                // Random position
+                const size = 40 + Math.random() * 40; // 40-80px
+                const x = Math.random() * (800 - size);
+                const y = Math.random() * (500 - size);
+                
+                target.style.width = size + 'px';
+                target.style.height = size + 'px';
+                target.style.left = x + 'px';
+                target.style.top = y + 'px';
+                target.style.background = `hsl(${Math.random() * 360}, 70%, 50%)`;
+                target.textContent = '🎯';
+                
+                // Add to game area and track
+                gameArea.appendChild(target);
+                this.gameState.targets.push(target);
+                
+                // Auto-remove after a few seconds
+                setTimeout(() => {
+                    if (target.parentNode && this.gameState.isPlaying) {
+                        target.remove();
+                        const index = this.gameState.targets.indexOf(target);
+                        if (index > -1) this.gameState.targets.splice(index, 1);
+                    }
+                }, 3000 + Math.random() * 2000);
+                
+                // Spawn next target
+                if (this.gameState.isPlaying) {
+                    setTimeout(() => this.spawnTarget(), 800 + Math.random() * 1000);
+                }
+            }
+            
+            checkTargetHit() {
+                if (!this.gameState.isPlaying) return;
+                
+                const cursorX = this.virtualCursor.x;
+                const cursorY = this.virtualCursor.y;
+                
+                this.gameState.targets.forEach((target, index) => {
+                    const rect = target.getBoundingClientRect();
+                    const gameRect = this.elements.gameArea.getBoundingClientRect();
+                    
+                    const targetX = target.offsetLeft;
+                    const targetY = target.offsetTop;
+                    const targetSize = parseFloat(target.style.width);
+                    
+                    // Check collision
+                    if (cursorX >= targetX && cursorX <= targetX + targetSize &&
+                        cursorY >= targetY && cursorY <= targetY + targetSize) {
+                        
+                        // Hit!
+                        target.classList.add('hit');
+                        this.gameState.score += 10;
+                        this.elements.score.textContent = this.gameState.score;
+                        
+                        // Remove target
+                        setTimeout(() => {
+                            target.remove();
+                            this.gameState.targets.splice(index, 1);
+                        }, 500);
+                        
+                        this.showMessage('🎯 Hit! +10 points', 'success');
+                        
+                        // Level up every 100 points
+                        if (this.gameState.score > 0 && this.gameState.score % 100 === 0) {
+                            this.gameState.level++;
+                            this.elements.level.textContent = this.gameState.level;
+                            this.showMessage(`🎊 Level ${this.gameState.level}!`, 'success');
+                        }
+                    }
+                });
+            }
+            
+            endTargetGame() {
+                this.gameState.isPlaying = false;
+                clearInterval(this.gameState.gameTimer);
+                
+                // Clear remaining targets
+                this.gameState.targets.forEach(target => target.remove());
+                this.gameState.targets = [];
+                
+                this.elements.startGame.textContent = '🚀 Start Game';
+                this.elements.startGame.disabled = false;
+                
+                this.showMessage(`🏆 Game Over! Final Score: ${this.gameState.score}`, 'success');
+            }
+            
+            resetTargetGame() {
+                this.endTargetGame();
+                this.gameState.score = 0;
+                this.gameState.level = 1;
+                this.gameState.timeLeft = 30;
+                
+                this.elements.score.textContent = '0';
+                this.elements.level.textContent = '1';
+                this.elements.timer.textContent = '30';
+                
+                this.showMessage('🔄 Game reset!', 'success');
+            }
+            
+            // Old updateDrawing function removed - drawing now only happens on left click
+            
+            displayModelInfo(fileName) {
+                this.elements.modelInfo.style.display = 'block';
+                this.elements.modelName.textContent = fileName;
+                this.elements.gestureCount.textContent = `${this.modelData.gestureNames.length} gestures`;
+                
+                // Show model details similar to gesture-tester
+                if (this.modelData.trainingData && this.modelData.accuracy) {
+                    const details = `
+                        Gestures: ${this.modelData.gestureNames.join(', ')}
+                        Features: ${this.modelData.numFeatures || 'N/A'}
+                        Accuracy: ${(this.modelData.accuracy * 100).toFixed(1)}%
+                        Training Samples: ${this.modelData.trainingData.length}
+                    `;
+                    this.showMessage(`Model loaded: ${this.modelData.gestureNames.length} gestures`, 'success');
+                }
+            }
+            
+            showStatus(message) {
+                this.elements.modelStatus.style.display = 'block';
+                this.elements.modelStatus.textContent = message;
+                this.elements.modelStatus.className = 'status';
+            }
+            
+            showCameraStatus(message) {
+                this.elements.cameraStatus.style.display = 'block';
+                this.elements.cameraStatus.textContent = message;
+            }
+            
+            showMessage(message, type = 'success') {
+                const messageEl = document.createElement('div');
+                messageEl.className = `message ${type}`;
+                messageEl.textContent = message;
+                document.body.appendChild(messageEl);
+                
+                setTimeout(() => {
+                    messageEl.remove();
+                }, 3000);
+            }
+
+
+            startPeriodicLogging() {
+                // Log system status every 10 seconds for debugging
+                setInterval(() => {
+                    console.log('📊 PERIODIC_STATUS:', {
+                        timestamp: new Date().toISOString(),
+                        isDetecting: this.isDetecting,
+                        hasCamera: !!this.camera,
+                        hasHands: !!this.hands,
+                        hasModel: !!this.modelData,
+                        currentActivity: this.currentActivity,
+                        systemActive: true
+                    });
+                }, 10000);
+            }
+            
+            downloadJSON(data, filename) {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🌟 PAGE: DOM loaded, starting Activities Center...');
+            window.activitiesCenter = new ActivitiesCenter();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Gesture Trainer</title>
+    <!-- MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- Simple JavaScript-based ML library -->
+    <script src="https://unpkg.com/ml-matrix@6.10.4/lib/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .setup-phase, .training-phase, .model-phase {
+            display: none;
+        }
+
+        .setup-phase.active, .training-phase.active, .model-phase.active {
+            display: block;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .setup-form {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .form-group {
+            margin: 20px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            color: #ffeb3b;
+        }
+
+        .form-group input, .form-group button {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        .form-group input {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            width: 300px;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn.danger {
+            background: #f44336;
+        }
+
+        .btn.danger:hover {
+            background: #da190b;
+        }
+
+        .btn.secondary {
+            background: #2196F3;
+        }
+
+        .btn.secondary:hover {
+            background: #0b7dda;
+        }
+
+        .gesture-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .gesture-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .gesture-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffeb3b;
+        }
+
+        .sample-count {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 15px;
+        }
+
+        .recording-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .video-container {
+            text-align: center;
+        }
+
+        .video-wrapper {
+            position: relative;
+            display: inline-block;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+            margin: 20px 0;
+        }
+
+        #input_video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        #output_canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            transform: scaleX(-1);
+        }
+
+        .status {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+
+        .recording-status {
+            background: rgba(255, 0, 0, 0.3);
+            border: 2px solid #ff4444;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+
+        .recording-status.active {
+            display: block;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1.0; }
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            height: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .training-info {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .data-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .data-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .data-count {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .data-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .phase-nav {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .phase-indicator {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            opacity: 0.5;
+        }
+
+        .phase-indicator.active {
+            background: #4CAF50;
+            opacity: 1;
+        }
+
+        .nav-bar {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-link.current {
+            background: #4CAF50;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .gesture-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav-bar">
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">🏠 Home</a>
+                <a href="gesture-trainer.html" class="nav-link current">🎓 Trainer</a>
+                <a href="gesture-tester.html" class="nav-link">🧪 Tester</a>
+                <a href="activities-center.html" class="nav-link">🎮 Activities</a>
+            </div>
+        </nav>
+
+        <div class="header">
+            <h1>🤖 Custom Gesture Trainer</h1>
+            <p>Train your own hand gesture recognition model</p>
+        </div>
+
+        <div class="phase-nav">
+            <div id="setupIndicator" class="phase-indicator active">1. Setup</div>
+            <div id="trainingIndicator" class="phase-indicator">2. Data Collection</div>
+            <div id="modelIndicator" class="phase-indicator">3. Model Training</div>
+        </div>
+
+        <!-- Phase 1: Setup -->
+        <div id="setupPhase" class="setup-phase active">
+            <div class="card">
+                <div class="setup-form">
+                    <h2>🎯 Configure Your Gestures</h2>
+                    
+                    <div class="form-group">
+                        <label>How many gestures do you want to train?</label>
+                        <input type="number" id="gestureCount" min="2" max="10" value="4" placeholder="Enter number (2-10)">
+                    </div>
+
+                    <div id="gestureNames" class="form-group">
+                        <!-- Gesture name inputs will be added here -->
+                    </div>
+
+                    <button id="startSetup" class="btn">🚀 Start Training Setup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 2: Data Collection -->
+        <div id="trainingPhase" class="training-phase">
+            <div class="main-grid">
+                <div class="card video-container">
+                    <h3>📹 Camera Feed & Landmarks</h3>
+                    
+                    <button id="initCamera" class="btn">📹 Initialize Camera</button>
+
+                    <div class="video-wrapper">
+                        <video id="input_video" autoplay muted playsinline></video>
+                        <canvas id="output_canvas"></canvas>
+                    </div>
+
+                    <div id="recordingStatus" class="recording-status">
+                        🔴 RECORDING: <span id="currentGestureName"></span>
+                        <div>Samples collected: <span id="sampleCount">0</span></div>
+                    </div>
+
+                    <div id="cameraStatus" class="status">
+                        Click "Initialize Camera" to begin
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Data Collection Progress</h3>
+                    
+                    <div class="progress-bar">
+                        <div id="overallProgress" class="progress-fill"></div>
+                    </div>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        Overall Progress: <span id="progressText">0%</span>
+                    </div>
+
+                    <div id="gestureTrainingList" class="gesture-list">
+                        <!-- Training gestures will be populated here -->
+                    </div>
+
+                    <div class="training-info">
+                        <h4>📋 Instructions:</h4>
+                        <ol>
+                            <li>Initialize the camera first</li>
+                            <li>For each gesture, click "Start Recording"</li>
+                            <li>Perform the gesture multiple times (aim for 50+ samples)</li>
+                            <li>Try different angles and hand positions</li>
+                            <li>Click "Stop Recording" when done</li>
+                            <li>Repeat for all gestures</li>
+                        </ol>
+                    </div>
+
+                    <button id="proceedToTraining" class="btn secondary" style="width: 100%; margin-top: 20px;" disabled>
+                        🎓 Proceed to Model Training
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase 3: Model Training -->
+        <div id="modelPhase" class="model-phase">
+            <div class="card">
+                <h3>🤖 Model Training & Results</h3>
+                
+                <div class="data-summary">
+                    <div class="data-item">
+                        <div id="totalSamples" class="data-count">0</div>
+                        <div class="data-label">Total Samples</div>
+                    </div>
+                    <div class="data-item">
+                        <div id="totalGestures" class="data-count">0</div>
+                        <div class="data-label">Gestures</div>
+                    </div>
+                    <div class="data-item">
+                        <div id="modelAccuracy" class="data-count">-</div>
+                        <div class="data-label">Accuracy</div>
+                    </div>
+                    <div class="data-item">
+                        <div id="trainingTime" class="data-count">-</div>
+                        <div class="data-label">Training Time</div>
+                    </div>
+                </div>
+
+                <div class="training-info">
+                    <h4>🎯 Training Configuration:</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0;">
+                        <div>
+                            <label>k-Nearest Neighbors:</label>
+                            <input type="number" id="kValue" value="5" min="1" max="15" style="width: 100px; padding: 5px; border-radius: 5px; border: none;">
+                        </div>
+                        <div>
+                            <label>Distance Metric:</label>
+                            <select id="distanceMetric" style="width: 120px; padding: 5px; border-radius: 5px; border: none;">
+                                <option value="euclidean">Euclidean</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p style="font-size: 12px; opacity: 0.8; margin-top: 10px;">
+                        k-NN is often more effective than Random Forest for gesture recognition with limited training data.
+                    </p>
+                </div>
+
+                <button id="trainModel" class="btn" style="width: 100%; margin: 20px 0;">
+                    🎓 Train k-NN Classifier
+                </button>
+
+                <div id="trainingStatus" class="status">
+                    Ready to train model...
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button id="downloadModel" class="btn secondary" style="display: none;">
+                        💾 Download Trained Model
+                    </button>
+                    <button id="testModel" class="btn" style="display: none;">
+                        🧪 Test Model
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+    </div>
+
+    <script>
+        // Simple k-NN Classifier implementation
+        class SimpleKNNClassifier {
+            constructor(k = 5) {
+                this.k = k;
+                this.trainX = [];
+                this.trainY = [];
+            }
+
+            train(X, y) {
+                this.trainX = X.map(row => [...row]); // Deep copy
+                this.trainY = [...y]; // Copy array
+                console.log(`✅ k-NN trained with ${X.length} samples, k=${this.k}`);
+            }
+
+            predict(sample) {
+                // Calculate distances to all training samples
+                const distances = this.trainX.map((trainSample, idx) => ({
+                    distance: this.euclideanDistance(sample, trainSample),
+                    label: this.trainY[idx]
+                }));
+
+                // Sort by distance and get k nearest neighbors
+                distances.sort((a, b) => a.distance - b.distance);
+                const kNearest = distances.slice(0, this.k);
+
+                // Find most common label among k nearest neighbors
+                const labelCounts = {};
+                kNearest.forEach(neighbor => {
+                    labelCounts[neighbor.label] = (labelCounts[neighbor.label] || 0) + 1;
+                });
+
+                // Return label with highest count
+                let maxCount = 0;
+                let predictedLabel = 0;
+                for (const [label, count] of Object.entries(labelCounts)) {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        predictedLabel = parseInt(label);
+                    }
+                }
+
+                return predictedLabel;
+            }
+
+            predictWithConfidence(sample) {
+                // Calculate distances to all training samples
+                const distances = this.trainX.map((trainSample, idx) => ({
+                    distance: this.euclideanDistance(sample, trainSample),
+                    label: this.trainY[idx]
+                }));
+
+                // Sort by distance and get k nearest neighbors
+                distances.sort((a, b) => a.distance - b.distance);
+                const kNearest = distances.slice(0, this.k);
+
+                // Count votes for each label
+                const labelCounts = {};
+                kNearest.forEach(neighbor => {
+                    labelCounts[neighbor.label] = (labelCounts[neighbor.label] || 0) + 1;
+                });
+
+                // Find prediction and confidence
+                let maxCount = 0;
+                let predictedLabel = 0;
+                for (const [label, count] of Object.entries(labelCounts)) {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        predictedLabel = parseInt(label);
+                    }
+                }
+
+                const confidence = maxCount / this.k;
+                return { prediction: predictedLabel, confidence: confidence };
+            }
+
+            euclideanDistance(a, b) {
+                let sum = 0;
+                for (let i = 0; i < a.length; i++) {
+                    sum += Math.pow(a[i] - b[i], 2);
+                }
+                return Math.sqrt(sum);
+            }
+        }
+
+        class GestureTrainer {
+            constructor() {
+                this.hands = null;
+                this.camera = null;
+                this.isRecording = false;
+                this.currentGestureIndex = 0;
+                this.trainingData = [];
+                this.gestureLabels = [];
+                this.gestureNames = [];
+                this.trainedModel = null;
+                
+                this.recordingData = [];
+                this.sampleCounts = {};
+                
+                this.elements = {};
+                this.cacheKey = 'gesture_trainer_progress';
+                this.init();
+            }
+
+            init() {
+                console.log('🚀 Initializing Gesture Trainer');
+                this.initElements();
+                this.setupEventListeners();
+                this.setupCacheCleanup();
+                this.restoreProgress();
+                this.updateGestureNameInputs();
+            }
+
+            initElements() {
+                this.elements = {
+                    // Setup phase
+                    gestureCount: document.getElementById('gestureCount'),
+                    gestureNames: document.getElementById('gestureNames'),
+                    startSetup: document.getElementById('startSetup'),
+                    
+                    // Training phase
+                    initCamera: document.getElementById('initCamera'),
+                    inputVideo: document.getElementById('input_video'),
+                    outputCanvas: document.getElementById('output_canvas'),
+                    cameraStatus: document.getElementById('cameraStatus'),
+                    recordingStatus: document.getElementById('recordingStatus'),
+                    currentGestureName: document.getElementById('currentGestureName'),
+                    sampleCount: document.getElementById('sampleCount'),
+                    gestureTrainingList: document.getElementById('gestureTrainingList'),
+                    overallProgress: document.getElementById('overallProgress'),
+                    progressText: document.getElementById('progressText'),
+                    proceedToTraining: document.getElementById('proceedToTraining'),
+                    
+                    // Model phase
+                    totalSamples: document.getElementById('totalSamples'),
+                    totalGestures: document.getElementById('totalGestures'),
+                    modelAccuracy: document.getElementById('modelAccuracy'),
+                    trainingTime: document.getElementById('trainingTime'),
+                    kValue: document.getElementById('kValue'),
+                    distanceMetric: document.getElementById('distanceMetric'),
+                    trainModel: document.getElementById('trainModel'),
+                    trainingStatus: document.getElementById('trainingStatus'),
+                    downloadModel: document.getElementById('downloadModel'),
+                    testModel: document.getElementById('testModel'),
+                    
+                    // Phases
+                    setupPhase: document.getElementById('setupPhase'),
+                    trainingPhase: document.getElementById('trainingPhase'),
+                    modelPhase: document.getElementById('modelPhase'),
+                    
+                    // Indicators
+                    setupIndicator: document.getElementById('setupIndicator'),
+                    trainingIndicator: document.getElementById('trainingIndicator'),
+                    modelIndicator: document.getElementById('modelIndicator'),
+                    
+                    errorMessage: document.getElementById('errorMessage')
+                };
+            }
+
+            setupEventListeners() {
+                this.elements.gestureCount.addEventListener('change', () => {
+                    this.updateGestureNameInputs();
+                });
+
+                this.elements.startSetup.addEventListener('click', () => {
+                    this.startDataCollection();
+                });
+
+                this.elements.initCamera.addEventListener('click', () => {
+                    this.initializeCamera();
+                });
+
+                this.elements.proceedToTraining.addEventListener('click', () => {
+                    this.switchToModelPhase();
+                });
+
+                this.elements.trainModel.addEventListener('click', () => {
+                    this.trainRandomForestModel();
+                });
+
+                this.elements.downloadModel.addEventListener('click', () => {
+                    this.downloadModel();
+                });
+
+                this.elements.testModel.addEventListener('click', () => {
+                    this.createTestInterface();
+                });
+            }
+
+            updateGestureNameInputs() {
+                const count = parseInt(this.elements.gestureCount.value);
+                const container = this.elements.gestureNames;
+                
+                container.innerHTML = '';
+                
+                for (let i = 0; i < count; i++) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.id = `gesture_${i}`;
+                    input.placeholder = `Gesture ${i + 1} name (e.g., "Fist", "Peace", "Point")`;
+                    input.style.width = '300px';
+                    input.style.margin = '5px';
+                    container.appendChild(input);
+                    container.appendChild(document.createElement('br'));
+                }
+            }
+
+            startDataCollection() {
+                // Collect gesture names
+                const count = parseInt(this.elements.gestureCount.value);
+                this.gestureNames = [];
+                
+                for (let i = 0; i < count; i++) {
+                    const name = document.getElementById(`gesture_${i}`).value.trim();
+                    if (!name) {
+                        this.showError(`Please enter a name for gesture ${i + 1}`);
+                        return;
+                    }
+                    this.gestureNames.push(name);
+                    this.sampleCounts[name] = 0;
+                }
+
+                console.log('👋 Starting data collection for gestures:', this.gestureNames);
+                this.saveProgress();
+                this.switchToTrainingPhase();
+            }
+
+            switchToTrainingPhase() {
+                this.elements.setupPhase.classList.remove('active');
+                this.elements.trainingPhase.classList.add('active');
+                
+                this.elements.setupIndicator.classList.remove('active');
+                this.elements.trainingIndicator.classList.add('active');
+                
+                this.renderTrainingGestures();
+                this.updateProgress();
+            }
+
+            switchToModelPhase() {
+                this.elements.trainingPhase.classList.remove('active');
+                this.elements.modelPhase.classList.add('active');
+                
+                this.elements.trainingIndicator.classList.remove('active');
+                this.elements.modelIndicator.classList.add('active');
+                
+                this.prepareModelTraining();
+            }
+
+            renderTrainingGestures() {
+                const container = this.elements.gestureTrainingList;
+                container.innerHTML = '';
+
+                this.gestureNames.forEach((gestureName, index) => {
+                    const gestureItem = document.createElement('div');
+                    gestureItem.className = 'gesture-item';
+                    gestureItem.innerHTML = `
+                        <div class="gesture-name">${gestureName}</div>
+                        <div class="sample-count">Samples: <span id="count_${index}">0</span></div>
+                        <div class="recording-controls">
+                            <button id="start_${index}" class="btn" onclick="window.gestureTrainer.startRecording(${index})">
+                                🔴 Start Recording
+                            </button>
+                            <button id="stop_${index}" class="btn danger" onclick="window.gestureTrainer.stopRecording()" disabled>
+                                ⏹️ Stop Recording
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(gestureItem);
+                });
+            }
+
+            async initializeCamera() {
+                try {
+                    this.elements.initCamera.innerHTML = '<div class="loading"></div> Initializing...';
+                    this.updateCameraStatus('🔄 Initializing MediaPipe Hands...');
+                    
+                    await this.initializeMediaPipe();
+                    
+                    this.updateCameraStatus('📹 Starting camera...');
+                    this.camera = new Camera(this.elements.inputVideo, {
+                        onFrame: async () => {
+                            if (this.hands) {
+                                await this.hands.send({ image: this.elements.inputVideo });
+                            }
+                        },
+                        width: 640,
+                        height: 480
+                    });
+                    
+                    await this.camera.start();
+                    
+                    this.elements.initCamera.textContent = '✅ Camera Ready';
+                    this.elements.initCamera.disabled = true;
+                    this.updateCameraStatus('✅ Camera ready! You can now start recording gestures.');
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize camera:', error);
+                    this.showError(`Camera initialization failed: ${error.message}`);
+                    this.elements.initCamera.textContent = '📹 Initialize Camera';
+                }
+            }
+
+            async initializeMediaPipe() {
+                this.hands = new Hands({
+                    locateFile: (file) => {
+                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                    }
+                });
+
+                this.hands.setOptions({
+                    maxNumHands: 1,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.5
+                });
+
+                this.hands.onResults((results) => {
+                    this.processResults(results);
+                });
+            }
+
+            processResults(results) {
+                const canvasCtx = this.elements.outputCanvas.getContext('2d');
+                canvasCtx.save();
+                canvasCtx.clearRect(0, 0, this.elements.outputCanvas.width, this.elements.outputCanvas.height);
+                
+                this.elements.outputCanvas.width = this.elements.inputVideo.videoWidth;
+                this.elements.outputCanvas.height = this.elements.inputVideo.videoHeight;
+
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    const landmarks = results.multiHandLandmarks[0];
+                    
+                    // Draw landmarks
+                    this.drawLandmarks(canvasCtx, landmarks);
+                    
+                    // Record data if recording
+                    if (this.isRecording) {
+                        this.recordLandmarkData(landmarks);
+                    }
+                }
+                
+                canvasCtx.restore();
+            }
+
+            drawLandmarks(ctx, landmarks) {
+                // Draw connections
+                drawConnectors(ctx, landmarks, HAND_CONNECTIONS, 
+                    { color: '#00FF00', lineWidth: 3 });
+                
+                // Draw landmarks with different colors
+                for (let i = 0; i < landmarks.length; i++) {
+                    const landmark = landmarks[i];
+                    const x = landmark.x * this.elements.outputCanvas.width;
+                    const y = landmark.y * this.elements.outputCanvas.height;
+                    
+                    // Color coding for different parts
+                    if (i === 0) ctx.fillStyle = '#FF0000'; // Wrist
+                    else if (i <= 4) ctx.fillStyle = '#FF6600'; // Thumb
+                    else if (i <= 8) ctx.fillStyle = '#FFFF00'; // Index
+                    else if (i <= 12) ctx.fillStyle = '#00FF00'; // Middle
+                    else if (i <= 16) ctx.fillStyle = '#0066FF'; // Ring
+                    else ctx.fillStyle = '#9900FF'; // Pinky
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // Draw landmark number
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(i.toString(), x + 8, y - 8);
+                }
+            }
+
+            startRecording(gestureIndex) {
+                if (!this.camera) {
+                    this.showError('Please initialize the camera first!');
+                    return;
+                }
+
+                this.isRecording = true;
+                this.currentGestureIndex = gestureIndex;
+                this.recordingData = [];
+                
+                // Update UI
+                const gestureName = this.gestureNames[gestureIndex];
+                this.elements.currentGestureName.textContent = gestureName;
+                this.elements.recordingStatus.classList.add('active');
+                
+                // Disable all start buttons, enable stop button
+                this.gestureNames.forEach((_, index) => {
+                    document.getElementById(`start_${index}`).disabled = true;
+                });
+                document.getElementById(`stop_${this.currentGestureIndex}`).disabled = false;
+                
+                this.updateCameraStatus(`🔴 Recording "${gestureName}" - Show your hand and perform the gesture multiple times`);
+                console.log(`🔴 Started recording gesture: ${gestureName}`);
+            }
+
+            stopRecording() {
+                if (!this.isRecording) return;
+
+                this.isRecording = false;
+                
+                // Save recorded data
+                const gestureName = this.gestureNames[this.currentGestureIndex];
+                this.trainingData = this.trainingData.concat(this.recordingData.map(data => ({
+                    features: data,
+                    label: gestureName
+                })));
+                
+                this.sampleCounts[gestureName] = this.recordingData.length;
+                
+                // Update UI
+                this.elements.recordingStatus.classList.remove('active');
+                document.getElementById(`count_${this.currentGestureIndex}`).textContent = this.recordingData.length;
+                
+                // Re-enable all start buttons, disable stop button
+                this.gestureNames.forEach((_, index) => {
+                    document.getElementById(`start_${index}`).disabled = false;
+                });
+                document.getElementById(`stop_${this.currentGestureIndex}`).disabled = true;
+                
+                this.updateCameraStatus(`✅ Recorded ${this.recordingData.length} samples for "${gestureName}"`);
+                this.updateProgress();
+                this.saveProgress(); // Save after recording data
+                
+                console.log(`✅ Stopped recording. Collected ${this.recordingData.length} samples for "${gestureName}"`);
+                
+                // Check if we have enough data
+                this.checkTrainingReadiness();
+            }
+
+            recordLandmarkData(landmarks) {
+                // Extract features from landmarks
+                const features = this.extractFeatures(landmarks);
+                this.recordingData.push(features);
+                
+                // Update sample count display
+                this.elements.sampleCount.textContent = this.recordingData.length;
+            }
+
+            extractFeatures(landmarks) {
+                // Extract comprehensive features from hand landmarks
+                const features = [];
+                
+                // 1. Raw coordinates (normalized)
+                landmarks.forEach(landmark => {
+                    features.push(landmark.x, landmark.y, landmark.z);
+                });
+                
+                // 2. Distances between key points
+                const keyPoints = [0, 4, 8, 12, 16, 20]; // Wrist, fingertips
+                for (let i = 0; i < keyPoints.length; i++) {
+                    for (let j = i + 1; j < keyPoints.length; j++) {
+                        const p1 = landmarks[keyPoints[i]];
+                        const p2 = landmarks[keyPoints[j]];
+                        const distance = Math.sqrt(
+                            Math.pow(p1.x - p2.x, 2) + 
+                            Math.pow(p1.y - p2.y, 2) + 
+                            Math.pow(p1.z - p2.z, 2)
+                        );
+                        features.push(distance);
+                    }
+                }
+                
+                // 3. Angles between finger segments
+                const fingerChains = [
+                    [1, 2, 3, 4],   // Thumb
+                    [5, 6, 7, 8],   // Index
+                    [9, 10, 11, 12], // Middle
+                    [13, 14, 15, 16], // Ring
+                    [17, 18, 19, 20] // Pinky
+                ];
+                
+                fingerChains.forEach(chain => {
+                    for (let i = 0; i < chain.length - 2; i++) {
+                        const p1 = landmarks[chain[i]];
+                        const p2 = landmarks[chain[i + 1]];
+                        const p3 = landmarks[chain[i + 2]];
+                        
+                        const angle = this.calculateAngle(p1, p2, p3);
+                        features.push(angle);
+                    }
+                });
+                
+                return features;
+            }
+
+            calculateAngle(p1, p2, p3) {
+                const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+                const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+                
+                const dot = v1.x * v2.x + v1.y * v2.y;
+                const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+                const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+                
+                return Math.acos(dot / (mag1 * mag2));
+            }
+
+            updateProgress() {
+                const totalSamples = Object.values(this.sampleCounts).reduce((sum, count) => sum + count, 0);
+                const totalPossible = this.gestureNames.length * 50; // Assuming 50 samples per gesture as target
+                const progress = Math.min((totalSamples / totalPossible) * 100, 100);
+                
+                this.elements.overallProgress.style.width = `${progress}%`;
+                this.elements.progressText.textContent = `${progress.toFixed(1)}%`;
+            }
+
+            checkTrainingReadiness() {
+                const minSamples = 20; // Minimum samples per gesture
+                const allGesturesHaveData = this.gestureNames.every(name => this.sampleCounts[name] >= minSamples);
+                
+                this.elements.proceedToTraining.disabled = !allGesturesHaveData;
+                
+                if (allGesturesHaveData) {
+                    this.elements.proceedToTraining.textContent = '🎓 Ready for Model Training!';
+                }
+            }
+
+            prepareModelTraining() {
+                const totalSamples = this.trainingData.length;
+                const uniqueGestures = [...new Set(this.trainingData.map(d => d.label))].length;
+                
+                this.elements.totalSamples.textContent = totalSamples;
+                this.elements.totalGestures.textContent = uniqueGestures;
+                
+                this.elements.trainingStatus.textContent = `Ready to train model with ${totalSamples} samples across ${uniqueGestures} gestures`;
+            }
+
+            async trainRandomForestModel() {
+                try {
+                    this.elements.trainModel.innerHTML = '<div class="loading"></div> Training...';
+                    this.elements.trainingStatus.textContent = 'Training k-NN classifier...';
+                    
+                    const startTime = Date.now();
+                    
+                    // Prepare training data
+                    const X = this.trainingData.map(d => d.features);
+                    const y = this.trainingData.map(d => d.label);
+                    
+                    // Create label encodings
+                    const uniqueLabels = [...new Set(y)];
+                    const labelEncoder = {};
+                    const labelDecoder = {};
+                    
+                    uniqueLabels.forEach((label, index) => {
+                        labelEncoder[label] = index;
+                        labelDecoder[index] = label;
+                    });
+                    
+                    const encodedY = y.map(label => labelEncoder[label]);
+                    
+                    console.log('🎓 Training k-NN classifier with:', {
+                        samples: X.length,
+                        features: X[0].length,
+                        classes: uniqueLabels.length
+                    });
+                    
+                    // Create k-NN classifier
+                    const k = parseInt(this.elements.kValue.value) || Math.min(5, Math.floor(Math.sqrt(X.length)));
+                    const classifier = new SimpleKNNClassifier(k);
+                    classifier.train(X, encodedY);
+                    
+                    // Calculate accuracy
+                    const predictions = X.map(sample => classifier.predict(sample));
+                    const accuracy = predictions.reduce((acc, pred, idx) => 
+                        acc + (pred === encodedY[idx] ? 1 : 0), 0) / predictions.length;
+                    
+                    const trainingTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                    
+                    // Store model
+                    this.trainedModel = {
+                        model: classifier,
+                        modelType: 'knn',
+                        labelEncoder: labelEncoder,
+                        labelDecoder: labelDecoder,
+                        gestureNames: uniqueLabels,
+                        accuracy: accuracy,
+                        trainingTime: trainingTime,
+                        numFeatures: X[0].length,
+                        k: k
+                    };
+                    
+                    // Update UI
+                    this.elements.modelAccuracy.textContent = `${(accuracy * 100).toFixed(1)}%`;
+                    this.elements.trainingTime.textContent = `${trainingTime}s`;
+                    this.elements.trainModel.textContent = '✅ Model Trained';
+                    this.elements.trainingStatus.textContent = `✅ k-NN classifier trained successfully! Accuracy: ${(accuracy * 100).toFixed(1)}% (k=${k})`;
+                    
+                    // Show action buttons
+                    this.elements.downloadModel.style.display = 'inline-block';
+                    this.elements.testModel.style.display = 'inline-block';
+                    
+                    console.log('✅ Model training completed:', this.trainedModel);
+                    
+                } catch (error) {
+                    console.error('❌ Model training failed:', error);
+                    this.showError(`Model training failed: ${error.message}`);
+                    this.elements.trainModel.textContent = '🎓 Train k-NN Model';
+                }
+            }
+
+            async downloadModel() {
+                if (!this.trainedModel) {
+                    this.showError('No trained model available!');
+                    return;
+                }
+                
+                // Ask user for model name
+                const modelName = prompt('Enter a name for your gesture model:', 'My Gesture Model');
+                if (!modelName || modelName.trim() === '') {
+                    this.showError('Model name is required!');
+                    return;
+                }
+                
+                const sanitizedName = modelName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+                
+                const modelData = {
+                    modelName: sanitizedName,
+                    gestureNames: this.trainedModel.gestureNames,
+                    labelEncoder: this.trainedModel.labelEncoder,
+                    labelDecoder: this.trainedModel.labelDecoder,
+                    accuracy: this.trainedModel.accuracy,
+                    trainingTime: this.trainedModel.trainingTime,
+                    numFeatures: this.trainedModel.numFeatures,
+                    trainingData: this.trainingData,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Save to saved_models folder (local storage simulation)
+                await this.saveModelToLocal(sanitizedName, modelData);
+                
+                // Also provide download option
+                const blob = new Blob([JSON.stringify(modelData, null, 2)], { 
+                    type: 'application/json' 
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${sanitizedName}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                console.log('💾 Model saved and downloaded:', sanitizedName);
+            }
+
+            async saveModelToLocal(modelName, modelData) {
+                try {
+                    // Save to localStorage with proper key structure
+                    const savedModels = JSON.parse(localStorage.getItem('gesture_saved_models') || '{}');
+                    savedModels[modelName] = modelData;
+                    localStorage.setItem('gesture_saved_models', JSON.stringify(savedModels));
+                    
+                    this.elements.trainingStatus.textContent = `✅ Model "${modelName}" saved successfully and downloaded!`;
+                    console.log('💾 Model saved to local storage:', modelName);
+                } catch (error) {
+                    console.error('❌ Failed to save model:', error);
+                    this.showError('Failed to save model to local storage');
+                }
+            }
+
+            createTestInterface() {
+                // Create a new window for testing
+                const testWindow = window.open('', '_blank', 'width=800,height=600');
+                testWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Gesture Model Test</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+                            .container { max-width: 600px; margin: 0 auto; }
+                            .result { background: white; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center; }
+                            .gesture-name { font-size: 2rem; font-weight: bold; margin: 10px 0; }
+                            .confidence { font-size: 1.2rem; color: #666; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <h1>🧪 Gesture Model Test</h1>
+                            <p>This would be your gesture testing interface!</p>
+                            <div class="result">
+                                <div class="gesture-name">Model Ready</div>
+                                <div class="confidence">Accuracy: ${(this.trainedModel.accuracy * 100).toFixed(1)}%</div>
+                            </div>
+                            <p><strong>Model Info:</strong></p>
+                            <ul>
+                                <li>Gestures: ${this.trainedModel.gestureNames.join(', ')}</li>
+                                <li>Features: ${this.trainedModel.numFeatures}</li>
+                                <li>Training Time: ${this.trainedModel.trainingTime}s</li>
+                            </ul>
+                        </div>
+                    </body>
+                    </html>
+                `);
+            }
+
+            updateCameraStatus(message) {
+                this.elements.cameraStatus.textContent = message;
+                console.log('📊', message);
+            }
+
+            showError(message) {
+                this.elements.errorMessage.textContent = message;
+                this.elements.errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    this.elements.errorMessage.style.display = 'none';
+                }, 5000);
+                console.error('❌', message);
+            }
+
+            setupCacheCleanup() {
+                // Clean up cache when window is closed
+                window.addEventListener('beforeunload', () => {
+                    try {
+                        localStorage.removeItem(this.cacheKey);
+                        console.log('🧹 Cache cleaned up on window close');
+                    } catch (error) {
+                        console.error('❌ Failed to clean cache:', error);
+                    }
+                });
+            }
+
+            saveProgress() {
+                try {
+                    const progressData = {
+                        gestureNames: this.gestureNames,
+                        sampleCounts: this.sampleCounts,
+                        trainingData: this.trainingData,
+                        currentPhase: this.getCurrentPhase(),
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    localStorage.setItem(this.cacheKey, JSON.stringify(progressData));
+                    console.log('💾 Progress saved to cache');
+                } catch (error) {
+                    console.error('❌ Failed to save progress:', error);
+                }
+            }
+
+            restoreProgress() {
+                try {
+                    const savedProgress = localStorage.getItem(this.cacheKey);
+                    if (savedProgress) {
+                        const progressData = JSON.parse(savedProgress);
+                        
+                        this.gestureNames = progressData.gestureNames || [];
+                        this.sampleCounts = progressData.sampleCounts || {};
+                        this.trainingData = progressData.trainingData || [];
+                        
+                        if (this.gestureNames.length > 0) {
+                            // Restore gesture count
+                            this.elements.gestureCount.value = this.gestureNames.length;
+                            this.updateGestureNameInputs();
+                            
+                            // Restore gesture names in input fields
+                            this.gestureNames.forEach((name, index) => {
+                                const input = document.getElementById(`gesture_${index}`);
+                                if (input) input.value = name;
+                            });
+                            
+                            // Switch to appropriate phase if we have data
+                            if (progressData.currentPhase === 'training' && this.trainingData.length > 0) {
+                                this.switchToTrainingPhase();
+                                this.renderTrainingGestures();
+                                this.updateProgress();
+                                console.log('📋 Restored training progress');
+                            } else if (progressData.currentPhase === 'model' && this.trainingData.length > 0) {
+                                this.switchToModelPhase();
+                                console.log('📋 Restored model training phase');
+                            }
+                        }
+                        
+                        console.log('📋 Progress restored from cache');
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to restore progress:', error);
+                }
+            }
+
+            getCurrentPhase() {
+                if (this.elements.setupPhase.classList.contains('active')) return 'setup';
+                if (this.elements.trainingPhase.classList.contains('active')) return 'training';
+                if (this.elements.modelPhase.classList.contains('active')) return 'model';
+                return 'setup';
+            }
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.gestureTrainer = new GestureTrainer();
+            });
+        } else {
+            window.gestureTrainer = new GestureTrainer();
+        }
+    </script>
+</body>
+</html>

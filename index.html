@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Gesture Mouse Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .tool-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .tool-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .tool-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ffeb3b;
+        }
+
+        .tool-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            opacity: 0.9;
+        }
+
+        .tool-features {
+            text-align: left;
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+
+        .tool-features li {
+            margin: 8px 0;
+            font-size: 0.9rem;
+        }
+
+        .tool-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .tool-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .workflow {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px 0;
+        }
+
+        .workflow h2 {
+            color: #ffeb3b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .workflow-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .workflow-step {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .step-number {
+            background: #4CAF50;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-weight: bold;
+        }
+
+        .cleanup-section {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid rgba(255, 193, 7, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .cleanup-section h3 {
+            color: #ffeb3b;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖐️ Hand Gesture Mouse Control</h1>
+            <p>Train and use custom gesture recognition for mouse control</p>
+        </div>
+
+        <div class="cleanup-section">
+            <h3>🧹 Clean Project Structure</h3>
+            <p>I've organized and cleaned up your project. Here are the essential tools you need:</p>
+        </div>
+
+        <div class="tools-grid">
+            <div class="tool-card">
+                <div class="tool-icon">🎓</div>
+                <div class="tool-title">Gesture Trainer</div>
+                <div class="tool-description">
+                    Train your own custom gesture recognition model with your preferred gestures
+                </div>
+                <ul class="tool-features">
+                    <li>✅ Configure 2-10 custom gestures</li>
+                    <li>✅ Record training data with visual feedback</li>
+                    <li>✅ See exact hand landmarks while recording</li>
+                    <li>✅ Train k-NN classifier</li>
+                    <li>✅ Save and download trained models</li>
+                </ul>
+                <a href="gesture-trainer.html" class="tool-button">🚀 Start Training</a>
+            </div>
+
+            <div class="tool-card">
+                <div class="tool-icon">🧪</div>
+                <div class="tool-title">Gesture Tester</div>
+                <div class="tool-description">
+                    Test your trained model with real-time gesture recognition and mouse action simulation
+                </div>
+                <ul class="tool-features">
+                    <li>✅ Load trained model from JSON file</li>
+                    <li>✅ Real-time gesture prediction</li>
+                    <li>✅ Confidence scoring and statistics</li>
+                    <li>✅ Dynamic gesture mapping</li>
+                    <li>✅ Activities center for testing</li>
+                </ul>
+                <a href="gesture-tester.html" class="tool-button">🧪 Test Model</a>
+            </div>
+
+            <div class="tool-card">
+                <div class="tool-icon">🎮</div>
+                <div class="tool-title">Activities Center</div>
+                <div class="tool-description">
+                    Test and practice your trained gestures with interactive activities and games
+                </div>
+                <ul class="tool-features">
+                    <li>✅ Real-time gesture practice</li>
+                    <li>✅ Interactive mouse control</li>
+                    <li>✅ Visual feedback system</li>
+                    <li>✅ Performance tracking</li>
+                    <li>✅ Gesture mapping validation</li>
+                </ul>
+                <a href="activities-center.html" class="tool-button">🎮 Practice Gestures</a>
+            </div>
+
+        </div>
+
+        <div class="workflow">
+            <h2>🔄 Recommended Workflow</h2>
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <div class="step-number">1</div>
+                    <h4>Plan Your Gestures</h4>
+                    <p>Decide how many gestures you want (2-10) and what they should be called</p>
+                </div>
+                <div class="workflow-step">
+                    <div class="step-number">2</div>
+                    <h4>Train Your Model</h4>
+                    <p>Use the Gesture Trainer to record training data and train your custom model</p>
+                </div>
+                <div class="workflow-step">
+                    <div class="step-number">3</div>
+                    <h4>Test & Refine</h4>
+                    <p>Use the Gesture Tester to evaluate your model and see real-time predictions</p>
+                </div>
+                <div class="workflow-step">
+                    <div class="step-number">4</div>
+                    <h4>Integrate</h4>
+                    <p>Once satisfied, integrate the model into your mouse control application</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 40px 0;">
+            <h3 style="color: #ffeb3b; margin-bottom: 15px;">🎯 Quick Start Guide</h3>
+            <p>1. Open <strong>Gesture Trainer</strong> → Configure 4 gestures (e.g., "Fist", "Point", "Peace", "Palm")</p>
+            <p>2. Record 50+ samples for each gesture with hand landmarks visible</p>
+            <p>3. Train Random Forest model and download the model file</p>
+            <p>4. Open <strong>Gesture Tester</strong> → Load your model file → Test real-time recognition</p>
+        </div>
+    </div>
+</body>
+</html>
