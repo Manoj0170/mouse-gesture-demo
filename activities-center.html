@@ -123,6 +123,54 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
+        /* Default Files Section Styles */
+        .default-files-section {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .default-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .default-btn {
+            flex: 1;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .default-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .default-btn-mapping {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+
+        .default-btn-mapping:hover {
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .default-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .status {
             background: rgba(76, 175, 80, 0.2);
             border: 1px solid #4CAF50;
@@ -556,6 +604,20 @@
                     <label for="modelFile" class="file-input-label">📂 Choose Model File</label>
                 </div>
                 <div class="info-text">Select your trained gesture model JSON file</div>
+                
+                <!-- Default Model Loading -->
+                <div class="default-files-section">
+                    <h4 style="color: #4CAF50; margin: 15px 0 10px 0;">🎯 Quick Start - Load Default Files</h4>
+                    <div class="default-buttons">
+                        <button id="loadDefaultModel" class="default-btn default-btn-model">
+                            🚀 Load Default Model
+                        </button>
+                        <button id="loadDefaultMapping" class="default-btn default-btn-mapping">
+                            🎮 Load Default Mapping
+                        </button>
+                    </div>
+                    <div class="info-text" style="font-size: 12px; color: #666;">Pre-configured 5-gesture model ready to use instantly</div>
+                </div>
                 
                 <div class="file-input-wrapper">
                     <input type="file" id="schemaFile" class="file-input" accept=".json">
@@ -1035,6 +1097,15 @@
                     }
                 });
                 
+                // Default file buttons
+                document.getElementById('loadDefaultModel').addEventListener('click', () => {
+                    this.loadDefaultModel();
+                });
+                
+                document.getElementById('loadDefaultMapping').addEventListener('click', () => {
+                    this.loadDefaultMapping();
+                });
+                
                 // Mapping buttons
                 this.elements.saveMapping.addEventListener('click', () => {
                     this.saveMappingSchema();
@@ -1357,6 +1428,89 @@
                 } catch (error) {
                     console.error('❌ MODEL: Failed to load model:', error);
                     this.showMessage(`Failed to load model: ${error.message}`, 'error');
+                }
+            }
+            
+            // Load default model from files folder
+            async loadDefaultModel() {
+                try {
+                    console.log('🚀 DEFAULT_MODEL: Loading default model from files/');
+                    this.showStatus('Loading default model...');
+                    
+                    const response = await fetch('./files/default_gesture_model.json');
+                    if (!response.ok) {
+                        throw new Error(`Failed to load default model: ${response.statusText}`);
+                    }
+                    
+                    const text = await response.text();
+                    console.log('📋 DEFAULT_MODEL: File loaded, size:', text.length, 'chars');
+                    
+                    const data = JSON.parse(text);
+                    console.log('🧠 DEFAULT_MODEL: Parsed model data:', {
+                        gestureNames: data.gestureNames,
+                        hasLabelEncoder: !!data.labelEncoder,
+                        hasTrainingData: !!data.trainingData,
+                        trainingDataLength: data.trainingData ? data.trainingData.length : 0
+                    });
+                    
+                    // Validate model data
+                    if (!data.gestureNames || !data.labelEncoder) {
+                        throw new Error('Invalid default model file format');
+                    }
+                    
+                    this.modelData = data;
+                    
+                    // Retrain model with loaded data
+                    console.log('🎯 DEFAULT_MODEL: Starting model retraining...');
+                    await this.retrainModel();
+                    console.log('✅ DEFAULT_MODEL: Model retrained successfully');
+                    
+                    this.setupGestureMappings();
+                    this.displayModelInfo('Default 5-Gesture Model');
+                    
+                    console.log('✅ DEFAULT_MODEL: Default model loaded and ready');
+                    this.showMessage('✅ Default model loaded successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('❌ DEFAULT_MODEL: Failed to load default model:', error);
+                    this.showMessage(`Failed to load default model: ${error.message}`, 'error');
+                }
+            }
+            
+            // Load default mapping from files folder
+            async loadDefaultMapping() {
+                try {
+                    console.log('🎮 DEFAULT_MAPPING: Loading default mapping from files/');
+                    this.showStatus('Loading default mapping...');
+                    
+                    const response = await fetch('./files/default_mapping.json');
+                    if (!response.ok) {
+                        throw new Error(`Failed to load default mapping: ${response.statusText}`);
+                    }
+                    
+                    const text = await response.text();
+                    console.log('📋 DEFAULT_MAPPING: File loaded, size:', text.length, 'chars');
+                    
+                    const data = JSON.parse(text);
+                    console.log('🗺️ DEFAULT_MAPPING: Parsed mapping data:', data);
+                    
+                    // Validate mapping data
+                    if (!data.mapping || typeof data.mapping !== 'object') {
+                        throw new Error('Invalid default mapping file format');
+                    }
+                    
+                    // Apply the mapping
+                    this.gestureMapping = { ...data.mapping };
+                    
+                    // Update UI to show loaded mappings
+                    this.updateMappingDisplay();
+                    
+                    console.log('✅ DEFAULT_MAPPING: Default mapping applied:', this.gestureMapping);
+                    this.showMessage('✅ Default mapping loaded successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('❌ DEFAULT_MAPPING: Failed to load default mapping:', error);
+                    this.showMessage(`Failed to load default mapping: ${error.message}`, 'error');
                 }
             }
             

@@ -1,0 +1,20 @@
+{
+  "name": "mapping_20250810T1754",
+  "type": "model-based",
+  "createdAt": "2025-08-10T17:54:45.251Z",
+  "mapping": {
+    "openhand": "stayRightThere",
+    "point": "leftClick",
+    "wrist": "scroll",
+    "twofinger": "normalMotion",
+    "pinch": "rightClick"
+  },
+  "colors": {
+    "openhand": "#FFC107",
+    "point": "#4CAF50",
+    "wrist": "#00BCD4",
+    "twofinger": "#9C27B0",
+    "pinch": "#FF5722"
+  },
+  "gestureCount": 5
+}
