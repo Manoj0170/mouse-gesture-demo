@@ -19,6 +19,67 @@
             padding: 20px;
         }
 
+        /* Navigation header */
+        .nav-header {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 0;
+            z-index: 100;
+            margin-bottom: 20px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffeb3b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-links a.active {
+            background: rgba(255, 235, 59, 0.2);
+            color: #ffeb3b;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+        }
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -121,54 +182,6 @@
         .file-input-label:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Default Files Section Styles */
-        .default-files-section {
-            background: rgba(76, 175, 80, 0.1);
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            border-radius: 12px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-
-        .default-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-
-        .default-btn {
-            flex: 1;
-            background: linear-gradient(45deg, #4CAF50, #45a049);
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-
-        .default-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-        }
-
-        .default-btn-mapping {
-            background: linear-gradient(45deg, #2196F3, #1976D2);
-        }
-
-        .default-btn-mapping:hover {
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-        }
-
-        .default-btn:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
         }
 
         .status {
@@ -558,6 +571,23 @@
     </style>
 </head>
 <body>
+    <!-- Navigation Header -->
+    <nav class="nav-header">
+        <div class="nav-container">
+            <div class="logo">
+                <span>🖐️</span>
+                <span>Gesture Control</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">🏠 Home</a></li>
+                <li><a href="gesture-trainer.html">🎓 Trainer</a></li>
+                <li><a href="gesture-tester.html">🧪 Tester</a></li>
+                <li><a href="activities-center.html" class="active">🎮 Activities</a></li>
+                <li><a href="README.md" target="_blank">📖 Docs</a></li>
+            </ul>
+        </div>
+    </nav>
+
     <!-- Global Virtual Cursor -->
     <div id="globalVirtualCursor" class="virtual-cursor"></div>
     
@@ -604,20 +634,6 @@
                     <label for="modelFile" class="file-input-label">📂 Choose Model File</label>
                 </div>
                 <div class="info-text">Select your trained gesture model JSON file</div>
-                
-                <!-- Default Model Loading -->
-                <div class="default-files-section">
-                    <h4 style="color: #4CAF50; margin: 15px 0 10px 0;">🎯 Quick Start - Load Default Files</h4>
-                    <div class="default-buttons">
-                        <button id="loadDefaultModel" class="default-btn default-btn-model">
-                            🚀 Load Default Model
-                        </button>
-                        <button id="loadDefaultMapping" class="default-btn default-btn-mapping">
-                            🎮 Load Default Mapping
-                        </button>
-                    </div>
-                    <div class="info-text" style="font-size: 12px; color: #666;">Pre-configured 5-gesture model ready to use instantly</div>
-                </div>
                 
                 <div class="file-input-wrapper">
                     <input type="file" id="schemaFile" class="file-input" accept=".json">
@@ -823,6 +839,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
     <!-- ML library for matrix operations -->
     <script src="https://unpkg.com/ml-matrix@6.10.4/lib/index.min.js"></script>
 
@@ -905,14 +923,14 @@
 
         class ActivitiesCenter {
             constructor() {
-                console.log('🚀 CONSTRUCTOR: Starting ActivitiesCenter initialization');
                 this.modelData = null;
                 this.trainedModel = null;
                 this.gestureMapping = {};
                 this.gestureColors = {}; // Store custom color mappings
                 this.manualMappings = [];
-                this.hands = null;
+                this.detector = null; // Changed from this.hands to this.detector
                 this.camera = null;
+                this.poseType = 'hands'; // Default pose type
                 this.isDetecting = false;
                 
                 // Activity state
@@ -984,12 +1002,8 @@
             }
             
             init() {
-                console.log('🚀 INIT: Starting Activities Center initialization');
                 this.initElements();
                 this.setupEventListeners();
-                this.startPeriodicLogging();
-                console.log('✅ INIT: Activities Center initialized (MediaPipe will initialize when camera starts)');
-                
             }
             
             initElements() {
@@ -1095,15 +1109,6 @@
                     if (e.target.files.length > 0) {
                         this.loadSchema(e.target.files[0]);
                     }
-                });
-                
-                // Default file buttons
-                document.getElementById('loadDefaultModel').addEventListener('click', () => {
-                    this.loadDefaultModel();
-                });
-                
-                document.getElementById('loadDefaultMapping').addEventListener('click', () => {
-                    this.loadDefaultMapping();
                 });
                 
                 // Mapping buttons
@@ -1276,115 +1281,119 @@
                 
             }
             
-            async initMediaPipe() {
+            async initializeMediaPipe() {
                 try {
-                    console.log('🔧 MEDIAPIPE: Starting MediaPipe Hands initialization');
                     
-                    // Check if MediaPipe Hands class is available
-                    if (typeof Hands === 'undefined') {
-                        throw new Error('MediaPipe Hands class not found - scripts may not be loaded');
-                    }
-                    console.log('✅ MEDIAPIPE: Hands class found');
-                    
-                    this.hands = new Hands({
-                        locateFile: (file) => {
-                            console.log('📁 MEDIAPIPE: Loading file:', file);
-                            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                    if (this.poseType === 'hands') {
+                        if (typeof Hands === 'undefined') {
+                            throw new Error('MediaPipe Hands class not found - scripts may not be loaded');
                         }
-                    });
-                    console.log('🏗️ MEDIAPIPE: Hands instance created');
-                    
-                    this.hands.setOptions({
-                        maxNumHands: 1,
-                        modelComplexity: 1,
-                        minDetectionConfidence: 0.7,
-                        minTrackingConfidence: 0.5
-                    });
-                    console.log('⚙️ MEDIAPIPE: Options set');
-                    
-                    this.hands.onResults((results) => {
+                        
+                        this.detector = new Hands({
+                            locateFile: (file) => {
+                                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                            }
+                        });
+
+                        this.detector.setOptions({
+                            maxNumHands: 1,
+                            modelComplexity: 1,
+                            minDetectionConfidence: 0.7,
+                            minTrackingConfidence: 0.5
+                        });
+
+                    } else if (this.poseType === 'pose') {
+                        if (typeof Pose === 'undefined') {
+                            throw new Error('MediaPipe Pose class not found - scripts may not be loaded');
+                        }
+                        
+                        this.detector = new Pose({
+                            locateFile: (file) => {
+                                return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                            }
+                        });
+
+                        this.detector.setOptions({
+                            modelComplexity: 1,
+                            smoothLandmarks: true,
+                            enableSegmentation: false,
+                            smoothSegmentation: false,
+                            minDetectionConfidence: 0.7,
+                            minTrackingConfidence: 0.5
+                        });
+
+                    } else if (this.poseType === 'holistic') {
+                        if (typeof Holistic === 'undefined') {
+                            throw new Error('MediaPipe Holistic class not found - scripts may not be loaded');
+                        }
+                        
+                        this.detector = new Holistic({
+                            locateFile: (file) => {
+                                return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+                            }
+                        });
+
+                        this.detector.setOptions({
+                            modelComplexity: 1,
+                            smoothLandmarks: true,
+                            enableSegmentation: false,
+                            smoothSegmentation: false,
+                            refineFaceLandmarks: true,
+                            minDetectionConfidence: 0.7,
+                            minTrackingConfidence: 0.5
+                        });
+                    }
+
+                    this.detector.onResults((results) => {
                         this.processResults(results);
                     });
-                    console.log('🔗 MEDIAPIPE: Results handler connected');
                     
-                    // Wait a moment to ensure everything is ready
                     await new Promise(resolve => setTimeout(resolve, 500));
                     
-                    console.log('✅ MEDIAPIPE: MediaPipe initialized successfully');
-                    this.showMessage('✅ MediaPipe ready for camera!', 'success');
+                    this.showMessage(`MediaPipe ready for camera (${this.poseType})!`, 'success');
                     
                 } catch (error) {
-                    console.error('❌ MEDIAPIPE: Detailed error:', {
-                        name: error.name,
-                        message: error.message,
-                        stack: error.stack
-                    });
-                    console.error('🔍 MEDIAPIPE_DEBUG: Available globals:', {
-                        Hands: typeof Hands !== 'undefined' ? 'OK' : 'MISSING',
-                        Camera: typeof Camera !== 'undefined' ? 'OK' : 'MISSING',
-                        drawConnectors: typeof drawConnectors !== 'undefined' ? 'OK' : 'MISSING'
-                    });
-                    this.showMessage('❌ MediaPipe initialization failed', 'error');
+                    this.showMessage(`MediaPipe initialization failed for ${this.poseType}`, 'error');
                     throw error;
                 }
             }
             
             async toggleCamera() {
-                console.log('🎬 CAMERA: Toggle camera called, current state:', this.isDetecting ? 'ON' : 'OFF');
                 
                 if (this.isDetecting) {
-                    // Stop camera
-                    console.log('📹 CAMERA: Stopping camera');
                     this.isDetecting = false;
                     if (this.camera) {
-                        console.log('📹 CAMERA: Camera object exists, stopping...');
                         await this.camera.stop();
-                        console.log('📹 CAMERA: Camera.stop() completed');
-                    } else {
-                        console.log('⚠️ CAMERA: Camera object was null');
                     }
                     this.elements.startCamera.textContent = '🎥 Start Camera';
                     this.elements.startCamera.classList.remove('btn-red');
                     this.showCameraStatus('Camera stopped');
-                    console.log('✅ CAMERA: Camera stopped successfully');
                 } else {
-                    // Start camera with detailed debugging
                     try {
-                        console.log('📹 CAMERA: Starting camera initialization');
-                        console.log('🔍 DEBUG: Floating video element:', this.elements.floatingVideo ? 'EXISTS' : 'MISSING');
-                        console.log('🔍 DEBUG: Camera class available:', typeof Camera !== 'undefined' ? 'YES' : 'NO');
-                        
                         this.showCameraStatus('Initializing MediaPipe...');
                         
-                        // Initialize MediaPipe first (like gesture-tester.html)
-                        console.log('🔧 CAMERA: Initializing MediaPipe before camera start');
-                        await this.initMediaPipe();
-                        console.log('✅ CAMERA: MediaPipe initialization completed');
+                        await this.initializeMediaPipe();
 
                         this.showCameraStatus('Starting camera...');
-                        console.log('📹 CAMERA: Creating camera instance');
                         
                         this.camera = new Camera(this.elements.floatingVideo, {
                             onFrame: async () => {
-                                if (this.hands) {
-                                    await this.hands.send({ image: this.elements.floatingVideo });
+                                if (this.detector) {
+                                    await this.detector.send({ image: this.elements.floatingVideo });
                                 }
                             },
                             width: 640,
                             height: 480
                         });
                         
-                        console.log('📹 CAMERA: Starting camera stream');
                         await this.camera.start();
                         
                         this.isDetecting = true;
                         this.elements.startCamera.textContent = '🛑 Stop Camera';
                         this.elements.startCamera.classList.add('btn-red');
-                        this.showCameraStatus('✅ Camera running - Show your hand!');
-                        console.log('✅ CAMERA: Camera started successfully');
+                        this.showCameraStatus('Camera running - Show your hand!');
                         
                     } catch (error) {
-                        console.error('❌ CAMERA: Failed to start camera:', error);
                         this.showMessage(`Failed to start camera: ${error.message}`, 'error');
                         this.showCameraStatus('Camera failed to start');
                     }
@@ -1393,185 +1402,72 @@
             
             async loadModel(file) {
                 try {
-                    console.log('📂 MODEL: Starting model load for:', file.name);
                     this.showStatus('Loading model...');
                     
                     const text = await file.text();
-                    console.log('📋 MODEL: File read, size:', text.length, 'chars');
-                    
                     const data = JSON.parse(text);
-                    console.log('🧠 MODEL: Parsed model data:', {
-                        gestureNames: data.gestureNames,
-                        hasLabelEncoder: !!data.labelEncoder,
-                        hasTrainingData: !!data.trainingData,
-                        trainingDataLength: data.trainingData ? data.trainingData.length : 0
-                    });
                     
                     // Validate model data (same as gesture-tester)
                     if (!data.gestureNames || !data.labelEncoder) {
                         throw new Error('Invalid model file format');
                     }
                     
+                    if (data.poseType && ['hands', 'pose', 'holistic'].includes(data.poseType)) {
+                        const oldPoseType = this.poseType;
+                        this.poseType = data.poseType;
+                        
+                        if (this.isDetecting && oldPoseType !== this.poseType) {
+                            await this.initializeMediaPipe();
+                        }
+                    }
+                    
                     this.modelData = data;
                     
-                    // Retrain model with loaded data
-                    console.log('🎯 MODEL: Starting model retraining...');
                     await this.retrainModel();
-                    console.log('✅ MODEL: Model retrained successfully');
-                    
                     this.setupGestureMappings();
                     this.displayModelInfo(file.name);
-                    
-                    console.log('✅ MODEL: Model loaded and ready for prediction');
-                    this.showMessage('✅ Model loaded successfully!', 'success');
+                    this.showMessage('Model loaded successfully!', 'success');
                     
                 } catch (error) {
-                    console.error('❌ MODEL: Failed to load model:', error);
                     this.showMessage(`Failed to load model: ${error.message}`, 'error');
                 }
             }
             
-            // Load default model from files folder
-            async loadDefaultModel() {
-                try {
-                    console.log('🚀 DEFAULT_MODEL: Loading default model from files/');
-                    this.showStatus('Loading default model...');
-                    
-                    const response = await fetch('./files/default_gesture_model.json');
-                    if (!response.ok) {
-                        throw new Error(`Failed to load default model: ${response.statusText}`);
-                    }
-                    
-                    const text = await response.text();
-                    console.log('📋 DEFAULT_MODEL: File loaded, size:', text.length, 'chars');
-                    
-                    const data = JSON.parse(text);
-                    console.log('🧠 DEFAULT_MODEL: Parsed model data:', {
-                        gestureNames: data.gestureNames,
-                        hasLabelEncoder: !!data.labelEncoder,
-                        hasTrainingData: !!data.trainingData,
-                        trainingDataLength: data.trainingData ? data.trainingData.length : 0
-                    });
-                    
-                    // Validate model data
-                    if (!data.gestureNames || !data.labelEncoder) {
-                        throw new Error('Invalid default model file format');
-                    }
-                    
-                    this.modelData = data;
-                    
-                    // Retrain model with loaded data
-                    console.log('🎯 DEFAULT_MODEL: Starting model retraining...');
-                    await this.retrainModel();
-                    console.log('✅ DEFAULT_MODEL: Model retrained successfully');
-                    
-                    this.setupGestureMappings();
-                    this.displayModelInfo('Default 5-Gesture Model');
-                    
-                    console.log('✅ DEFAULT_MODEL: Default model loaded and ready');
-                    this.showMessage('✅ Default model loaded successfully!', 'success');
-                    
-                } catch (error) {
-                    console.error('❌ DEFAULT_MODEL: Failed to load default model:', error);
-                    this.showMessage(`Failed to load default model: ${error.message}`, 'error');
-                }
-            }
-            
-            // Load default mapping from files folder
-            async loadDefaultMapping() {
-                try {
-                    console.log('🎮 DEFAULT_MAPPING: Loading default mapping from files/');
-                    this.showStatus('Loading default mapping...');
-                    
-                    const response = await fetch('./files/default_mapping.json');
-                    if (!response.ok) {
-                        throw new Error(`Failed to load default mapping: ${response.statusText}`);
-                    }
-                    
-                    const text = await response.text();
-                    console.log('📋 DEFAULT_MAPPING: File loaded, size:', text.length, 'chars');
-                    
-                    const data = JSON.parse(text);
-                    console.log('🗺️ DEFAULT_MAPPING: Parsed mapping data:', data);
-                    
-                    // Validate mapping data
-                    if (!data.mapping || typeof data.mapping !== 'object') {
-                        throw new Error('Invalid default mapping file format');
-                    }
-                    
-                    // Apply the mapping
-                    this.gestureMapping = { ...data.mapping };
-                    
-                    // Update UI to show loaded mappings
-                    this.updateMappingDisplay();
-                    
-                    console.log('✅ DEFAULT_MAPPING: Default mapping applied:', this.gestureMapping);
-                    this.showMessage('✅ Default mapping loaded successfully!', 'success');
-                    
-                } catch (error) {
-                    console.error('❌ DEFAULT_MAPPING: Failed to load default mapping:', error);
-                    this.showMessage(`Failed to load default mapping: ${error.message}`, 'error');
-                }
-            }
-            
             async retrainModel() {
-                console.log('🔄 RETRAIN: Extracting training data...');
                 const X = this.modelData.trainingData.map(d => d.features);
                 const y = this.modelData.trainingData.map(d => d.label);
-                console.log('📈 RETRAIN: Features X shape:', X.length, 'x', X[0] ? X[0].length : 0);
-                console.log('🏷️ RETRAIN: Labels y:', y.slice(0, 5), '... (showing first 5)');
-
                 const encodedY = y.map(label => this.modelData.labelEncoder[label]);
-                console.log('🔢 RETRAIN: Encoded labels:', encodedY.slice(0, 5), '... (showing first 5)');
 
-                // Create labelDecoder (reverse of labelEncoder)
                 this.modelData.labelDecoder = {};
                 Object.entries(this.modelData.labelEncoder).forEach(([label, code]) => {
                     this.modelData.labelDecoder[code] = label;
                 });
-                console.log('🗺️ RETRAIN: Label decoder created:', this.modelData.labelDecoder);
 
-                // Create new k-NN classifier
                 const k = this.modelData.k || Math.min(5, Math.floor(Math.sqrt(X.length)));
-                console.log('🤖 RETRAIN: Creating k-NN classifier with k =', k);
                 const knn = new SimpleKNNClassifier(k);
                 knn.train(X, encodedY);
-
                 this.trainedModel = knn;
-                console.log('✅ RETRAIN: k-NN classifier trained and ready');
             }
             
             async loadSchema(file) {
                 try {
-                    console.log('🗺️ SCHEMA: Starting schema load for:', file.name);
-                    
                     if (!this.modelData) {
-                        console.error('❌ SCHEMA: No model data available');
                         this.showMessage('Please load a model first', 'error');
                         return;
                     }
                     
                     this.showStatus('Loading schema...');
-                    
                     const text = await file.text();
-                    console.log('📋 SCHEMA: File read, size:', text.length, 'chars');
-                    
                     const schema = JSON.parse(text);
-                    console.log('🧠 SCHEMA: Parsed schema:', schema);
                     
                     if (!schema.mapping) {
                         throw new Error('Invalid schema format: missing mapping object');
                     }
                     
-                    console.log('🔄 SCHEMA: Applying mappings...');
                     this.applySchema(schema);
                     
-                    // Show detailed feedback
                     const mappingCount = Object.keys(schema.mapping).length;
-                    console.log('✅ SCHEMA: Schema applied successfully with', mappingCount, 'mappings');
-                    console.log('🗺️ SCHEMA: Final gesture mapping:', this.gestureMapping);
-                    
-                    this.showMessage(`✅ Schema loaded! Applied ${mappingCount} gesture mappings.`, 'success');
+                    this.showMessage(`Schema loaded! Applied ${mappingCount} gesture mappings.`, 'success');
                     this.showStatus(`Schema loaded: ${mappingCount} mappings applied`);
                     
                 } catch (error) {
@@ -1903,8 +1799,7 @@
             }
             
             processResults(results) {
-                console.log('🔍 PROCESS: Processing MediaPipe results, hands detected:', 
-                    results.multiHandLandmarks ? results.multiHandLandmarks.length : 0);
+
                 
                 const ctx = this.elements.floatingCanvas.getContext('2d');
                 ctx.clearRect(0, 0, this.elements.floatingCanvas.width, this.elements.floatingCanvas.height);
@@ -1912,24 +1807,47 @@
                 // Set canvas size to match video
                 this.elements.floatingCanvas.width = this.elements.floatingVideo.videoWidth || 320;
                 this.elements.floatingCanvas.height = this.elements.floatingVideo.videoHeight || 180;
-                
-                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                    console.log('✋ HAND: Hand detected with', results.multiHandLandmarks[0].length, 'landmarks');
-                    const landmarks = results.multiHandLandmarks[0];
+
+                let landmarks = null;
+
+                // Extract landmarks based on pose type
+                if (this.poseType === 'hands') {
+                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+
+                        landmarks = results.multiHandLandmarks[0];
+                        this.drawHandLandmarks(ctx, landmarks);
+                    }
+                } else if (this.poseType === 'pose') {
+                    if (results.poseLandmarks) {
+
+                        landmarks = results.poseLandmarks;
+                        this.drawPoseLandmarks(ctx, landmarks);
+                    }
+                } else if (this.poseType === 'holistic') {
+                    // For holistic, we'll combine all landmarks
+                    let allLandmarks = [];
+                    if (results.poseLandmarks) allLandmarks = allLandmarks.concat(results.poseLandmarks);
+                    if (results.leftHandLandmarks) allLandmarks = allLandmarks.concat(results.leftHandLandmarks);
+                    if (results.rightHandLandmarks) allLandmarks = allLandmarks.concat(results.rightHandLandmarks);
                     
+                    if (allLandmarks.length > 0) {
+
+                        landmarks = allLandmarks;
+                        this.drawHolisticLandmarks(ctx, results);
+                    }
+                }
+                
+                if (landmarks) {
                     // Check if we're returning from out-of-frame
                     if (!this.lastFrameHadHand) {
                         this.needsReferenceUpdate = true;
-                        console.log('🔄 RETURN: Hand returned to frame, will reset reference');
+
                     }
                     this.lastFrameHadHand = true;
                     
-                    // Draw hand landmarks
-                    this.drawHandLandmarks(ctx, landmarks);
-                    
                     // Predict gesture using trained model or fallback
                     const currentGesture = this.predictGesture(landmarks);
-                    console.log('👋 GESTURE: Predicted gesture:', currentGesture, 
+
                         'Confidence:', this.currentConfidence ? (this.currentConfidence * 100).toFixed(1) + '%' : 'N/A');
                     
                     // Apply gesture stability check
@@ -1940,11 +1858,11 @@
                         this.lastGesture = currentGesture;
                     }
                     
-                    console.log('⏱️ STABILITY: Gesture hold time:', this.gestureHoldTime, '/', this.gestureStabilityThreshold);
+
                     
                     // Only process gesture if it's been stable for enough frames
                     if (this.gestureHoldTime >= this.gestureStabilityThreshold) {
-                        console.log('✅ STABLE: Executing stable gesture:', currentGesture);
+
                         this.executeGesture(currentGesture, landmarks);
                     }
                     
@@ -1953,14 +1871,27 @@
                     
                     // Update floating camera info
                     this.elements.floatingGesture.textContent = currentGesture;
-                    this.elements.handCount.textContent = results.multiHandLandmarks.length;
+                    
+                    // Update detection count based on pose type
+                    if (this.poseType === 'hands') {
+                        this.elements.handCount.textContent = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+                    } else if (this.poseType === 'pose') {
+                        this.elements.handCount.textContent = results.poseLandmarks ? 1 : 0;
+                    } else if (this.poseType === 'holistic') {
+                        let totalDetections = 0;
+                        if (results.poseLandmarks) totalDetections++;
+                        if (results.leftHandLandmarks) totalDetections++;
+                        if (results.rightHandLandmarks) totalDetections++;
+                        this.elements.handCount.textContent = totalDetections;
+                    }
+                    
                     this.elements.gestureConfidence.textContent = this.currentConfidence ? 
                         `${(this.currentConfidence * 100).toFixed(1)}%` : '85%';
                     
                 } else {
-                    console.log('❌ HAND: No hand detected - cursor stays at:', Math.round(this.virtualCursor.x), Math.round(this.virtualCursor.y));
-                    this.elements.currentGesture.textContent = 'No hand detected';
-                    this.elements.floatingGesture.textContent = 'No hand detected';
+
+                    this.elements.currentGesture.textContent = `No ${this.poseType} detected`;
+                    this.elements.floatingGesture.textContent = `No ${this.poseType} detected`;
                     this.elements.handCount.textContent = '0';
                     this.elements.gestureConfidence.textContent = '0%';
                     this.lastFrameHadHand = false;
@@ -1969,44 +1900,51 @@
             }
             
             predictGesture(landmarks) {
-                console.log('🤖 PREDICT: Starting gesture prediction...');
-                console.log('🧠 PREDICT: Has trained model:', !!this.trainedModel, 'Has model data:', !!this.modelData);
+
+
                 
                 if (!this.trainedModel || !this.modelData) {
                     // Fallback to simple gesture if no trained model
-                    console.log('⚠️ PREDICT: No trained model, using simple gesture recognition');
+
                     this.currentConfidence = 0;
                     const simpleGesture = this.recognizeSimpleGesture(landmarks);
-                    console.log('🔍 PREDICT: Simple gesture result:', simpleGesture);
+
                     return simpleGesture;
                 }
 
                 try {
-                    // Extract features (same as gesture-tester)
-                    console.log('🔧 PREDICT: Extracting features from landmarks...');
-                    const features = this.extractFeatures(landmarks);
-                    console.log('📈 PREDICT: Extracted', features.length, 'features');
+                    // Extract features based on pose type
+
+                    let features;
+                    if (this.poseType === 'hands') {
+                        features = this.extractHandFeatures(landmarks);
+                    } else if (this.poseType === 'pose') {
+                        features = this.extractPoseFeatures(landmarks);
+                    } else if (this.poseType === 'holistic') {
+                        features = this.extractHolisticFeatures(landmarks);
+                    }
+
 
                     // Make prediction with confidence
-                    console.log('🔮 PREDICT: Making prediction with k-NN...');
+
                     const predResult = this.trainedModel.predictWithConfidence(features);
                     const predictedLabel = this.modelData.labelDecoder[predResult.prediction];
                     const confidence = predResult.confidence;
                     
-                    console.log('🎯 PREDICT: Raw prediction:', predResult.prediction, 
+
                         '-> Label:', predictedLabel, 'Confidence:', (confidence * 100).toFixed(1) + '%');
                     
                     this.currentConfidence = confidence;
 
                     // Only use prediction if confidence is high enough
                     if (confidence > 0.6) {
-                        console.log('✅ PREDICT: High confidence, using trained model prediction:', predictedLabel);
+
                         return predictedLabel;
                     } else {
                         // Fallback to simple gesture
-                        console.log('⚠️ PREDICT: Low confidence, falling back to simple gesture');
+
                         const simpleGesture = this.recognizeSimpleGesture(landmarks);
-                        console.log('🔍 PREDICT: Fallback result:', simpleGesture);
+
                         return simpleGesture;
                     }
 
@@ -2015,42 +1953,42 @@
                     console.error('❌ PREDICT: Error during prediction:', error);
                     this.currentConfidence = 0;
                     const simpleGesture = this.recognizeSimpleGesture(landmarks);
-                    console.log('🔍 PREDICT: Error fallback result:', simpleGesture);
+
                     return simpleGesture;
                 }
             }
             
-            extractFeatures(landmarks) {
-                // Same feature extraction as gesture-tester
+            extractHandFeatures(landmarks) {
+                // Extract comprehensive features from hand landmarks
                 const features = [];
-
-                // 1. Raw coordinates
+                
+                // 1. Raw coordinates (normalized)
                 landmarks.forEach(landmark => {
                     features.push(landmark.x, landmark.y, landmark.z);
                 });
-
+                
                 // 2. Distances between key points
-                const keyPoints = [0, 4, 8, 12, 16, 20];
+                const keyPoints = [0, 4, 8, 12, 16, 20]; // Wrist, fingertips
                 for (let i = 0; i < keyPoints.length; i++) {
                     for (let j = i + 1; j < keyPoints.length; j++) {
                         const p1 = landmarks[keyPoints[i]];
                         const p2 = landmarks[keyPoints[j]];
                         const distance = Math.sqrt(
-                            Math.pow(p1.x - p2.x, 2) +
-                            Math.pow(p1.y - p2.y, 2) +
+                            Math.pow(p1.x - p2.x, 2) + 
+                            Math.pow(p1.y - p2.y, 2) + 
                             Math.pow(p1.z - p2.z, 2)
                         );
                         features.push(distance);
                     }
                 }
-
+                
                 // 3. Angles between finger segments
                 const fingerChains = [
-                    [1, 2, 3, 4],
-                    [5, 6, 7, 8],
-                    [9, 10, 11, 12],
-                    [13, 14, 15, 16],
-                    [17, 18, 19, 20]
+                    [1, 2, 3, 4],   // Thumb
+                    [5, 6, 7, 8],   // Index
+                    [9, 10, 11, 12], // Middle
+                    [13, 14, 15, 16], // Ring
+                    [17, 18, 19, 20] // Pinky
                 ];
 
                 fingerChains.forEach(chain => {
@@ -2058,12 +1996,90 @@
                         const p1 = landmarks[chain[i]];
                         const p2 = landmarks[chain[i + 1]];
                         const p3 = landmarks[chain[i + 2]];
-
+                        
                         const angle = this.calculateAngle(p1, p2, p3);
                         features.push(angle);
                     }
                 });
+                
+                return features;
+            }
 
+            extractPoseFeatures(landmarks) {
+                // Extract features from body pose landmarks (33 landmarks)
+                const features = [];
+                
+                // 1. Raw coordinates
+                landmarks.forEach(landmark => {
+                    features.push(landmark.x, landmark.y, landmark.z);
+                });
+                
+                // 2. Key body segment distances
+                const keyPoints = [0, 11, 12, 13, 14, 15, 16, 23, 24]; // Key body joints
+                for (let i = 0; i < keyPoints.length; i++) {
+                    for (let j = i + 1; j < keyPoints.length; j++) {
+                        if (landmarks[keyPoints[i]] && landmarks[keyPoints[j]]) {
+                            const p1 = landmarks[keyPoints[i]];
+                            const p2 = landmarks[keyPoints[j]];
+                            const distance = Math.sqrt(
+                                Math.pow(p1.x - p2.x, 2) + 
+                                Math.pow(p1.y - p2.y, 2) + 
+                                Math.pow(p1.z - p2.z, 2)
+                            );
+                            features.push(distance);
+                        }
+                    }
+                }
+                
+                // 3. Body segment angles
+                const bodyChains = [
+                    [11, 13, 15], // Left arm
+                    [12, 14, 16], // Right arm
+                    [23, 25, 27], // Left leg (if available)
+                    [24, 26, 28]  // Right leg (if available)
+                ];
+
+                bodyChains.forEach(chain => {
+                    if (chain.every(idx => landmarks[idx])) {
+                        const p1 = landmarks[chain[0]];
+                        const p2 = landmarks[chain[1]];
+                        const p3 = landmarks[chain[2]];
+                        
+                        const angle = this.calculateAngle(p1, p2, p3);
+                        features.push(angle);
+                    }
+                });
+                
+                return features;
+            }
+
+            extractHolisticFeatures(landmarks) {
+                // For holistic, landmarks array contains concatenated pose + hands
+                // We'll extract features from all available landmarks
+                const features = [];
+                
+                // 1. Raw coordinates for all landmarks
+                landmarks.forEach(landmark => {
+                    features.push(landmark.x, landmark.y, landmark.z);
+                });
+                
+                // 2. Distances between various key points (simplified for performance)
+                const numLandmarks = landmarks.length;
+                const stepSize = Math.max(1, Math.floor(numLandmarks / 20)); // Sample every few landmarks
+                
+                for (let i = 0; i < numLandmarks; i += stepSize) {
+                    for (let j = i + stepSize; j < numLandmarks; j += stepSize) {
+                        const p1 = landmarks[i];
+                        const p2 = landmarks[j];
+                        const distance = Math.sqrt(
+                            Math.pow(p1.x - p2.x, 2) + 
+                            Math.pow(p1.y - p2.y, 2) + 
+                            Math.pow(p1.z - p2.z, 2)
+                        );
+                        features.push(distance);
+                    }
+                }
+                
                 return features;
             }
 
@@ -2097,7 +2113,7 @@
                 const thumbMcpWristDist = Math.abs(thumbMcp.x - wrist.x);
                 const thumbExtended = thumbWristDist > thumbMcpWristDist;
                 
-                console.log('🔍 SIMPLE: Fingers - Index:', indexExtended, 'Middle:', middleExtended, 'Thumb:', thumbExtended);
+
                 
                 // Return gesture names that match the 5 functions
                 if (indexExtended && middleExtended && !thumbExtended) {
@@ -2120,8 +2136,6 @@
             executeGesture(gestureName, landmarks) {
                 // Map gesture to the 5 core mouse functions
                 const mappedAction = this.gestureMapping[gestureName] || gestureName;
-                console.log('🎯 EXECUTE: Gesture mapping:', gestureName, '->', mappedAction, 'Cursor at:', Math.round(this.virtualCursor.x) + ',' + Math.round(this.virtualCursor.y));
-                console.log('🗺️ EXECUTE: Current gesture mappings:', this.gestureMapping);
                 
                 // Reset scroll tracking when not in scroll mode
                 if (mappedAction !== 'scroll') {
@@ -2141,7 +2155,6 @@
                     // set needsReferenceUpdate to maintain cursor continuity
                     if (mappedAction === 'normalMotion' && this.lastProcessedAction !== 'normalMotion') {
                         this.needsReferenceUpdate = true;
-                        console.log('🔄 TRANSITION: Moving from', this.lastProcessedAction, 'to mouse move - will maintain cursor position');
                     }
                     
                     // IMPORTANT: When transitioning AWAY from drawing (leftClick),
@@ -2149,8 +2162,7 @@
                     if (this.lastProcessedAction === 'leftClick' && mappedAction !== 'leftClick') {
                         if (this.isDrawing) {
                             this.isDrawing = false;
-                            console.log('🎨 TRANSITION: Stopped drawing stroke when switching to', mappedAction);
-                            this.showMessage('🎨 Drawing stroke ended', 'info');
+                            this.showMessage('Drawing stroke ended', 'info');
                         }
                     }
                     
@@ -2159,28 +2171,27 @@
                 
                 switch (mappedAction) {
                     case 'stayRightThere':
-                        console.log('✋ EXECUTE: Stay at rest');
                         this.mouseStayAtRest();
                         break;
                     case 'leftClick':
-                        console.log('🖘 EXECUTE: Left click');
+
                         this.mouseLeftClick(landmarks);
                         break;
                     case 'rightClick':
-                        console.log('🖙 EXECUTE: Right click');
+
                         this.mouseRightClick(landmarks);
                         break;
                     case 'normalMotion':
-                        console.log('👆 EXECUTE: Mouse move');
+
                         this.mouseMove(landmarks);
                         break;
                     case 'scroll':
-                        console.log('📜 EXECUTE: Scroll');
+
                         this.mouseScroll(landmarks);
                         break;
                     default:
                         // Fallback - if no mapping, use normalMotion for cursor movement
-                        console.log('⚠️ EXECUTE: Unknown mapping, defaulting to mouse move');
+
                         this.mouseMove(landmarks);
                         break;
                 }
@@ -2213,7 +2224,7 @@
                     this.cursorEMA.y = this.virtualCursor.y;
                     this.mouseNavigationActive = true;
                     this.needsReferenceUpdate = false; // Clear the flag
-                    console.log('👆 NAVIGATION: Reference reset to new hand position, cursor STAYS at:', Math.round(this.virtualCursor.x), Math.round(this.virtualCursor.y));
+
                     this.updateVirtualCursor('moving');
                     return;
                 }
@@ -2313,7 +2324,7 @@
                 // Reset smoothing buffers
                 this.resetSmoothingBuffers();
                 
-                console.log('🎛️ TUNING: Reset all parameters to best default values');
+
             }
             
             // Check if cursor is inside drawing canvas
@@ -2377,7 +2388,7 @@
                 if (!this.previousScrollY || this.needsReferenceUpdate) {
                     this.previousScrollY = smoothedPosition.y;
                     this.needsReferenceUpdate = false; // Clear flag for scroll
-                    console.log('📜 SCROLL: Reference updated for scroll, cursor stays at:', Math.round(this.virtualCursor.x), Math.round(this.virtualCursor.y));
+
                     this.updateVirtualCursor('scrolling');
                     return;
                 }
@@ -2509,6 +2520,61 @@
                     ctx.fill();
                 }
             }
+
+            drawPoseLandmarks(ctx, landmarks) {
+                // Draw pose connections
+                drawConnectors(ctx, landmarks, POSE_CONNECTIONS, 
+                    { color: '#00FF00', lineWidth: 3 });
+                
+                // Draw landmarks
+                for (let i = 0; i < landmarks.length; i++) {
+                    const landmark = landmarks[i];
+                    const x = landmark.x * this.elements.floatingCanvas.width;
+                    const y = landmark.y * this.elements.floatingCanvas.height;
+                    
+                    // Color coding for different body parts
+                    if (i <= 10) ctx.fillStyle = '#FF0000'; // Face/head
+                    else if (i <= 16) ctx.fillStyle = '#00FF00'; // Arms/shoulders
+                    else if (i <= 22) ctx.fillStyle = '#0066FF'; // Core/hips
+                    else ctx.fillStyle = '#FF00FF'; // Legs
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // Draw landmark number
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i.toString(), x + 6, y - 6);
+                }
+            }
+
+            drawHolisticLandmarks(ctx, results) {
+                // Draw pose landmarks
+                if (results.poseLandmarks) {
+                    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
+                        { color: '#00FF00', lineWidth: 2 });
+                    drawLandmarks(ctx, results.poseLandmarks, { color: '#FF0000', radius: 4 });
+                }
+                
+                // Draw hand landmarks
+                if (results.leftHandLandmarks) {
+                    drawConnectors(ctx, results.leftHandLandmarks, HAND_CONNECTIONS,
+                        { color: '#00FFFF', lineWidth: 2 });
+                    drawLandmarks(ctx, results.leftHandLandmarks, { color: '#0000FF', radius: 3 });
+                }
+                
+                if (results.rightHandLandmarks) {
+                    drawConnectors(ctx, results.rightHandLandmarks, HAND_CONNECTIONS,
+                        { color: '#FFFF00', lineWidth: 2 });
+                    drawLandmarks(ctx, results.rightHandLandmarks, { color: '#FF6600', radius: 3 });
+                }
+                
+                // Draw face mesh (simplified for performance)
+                if (results.faceLandmarks) {
+                    drawLandmarks(ctx, results.faceLandmarks, { color: '#C0C0C0', radius: 1 });
+                }
+            }
             
             // Removed old drawing methods - now using MediaPipe's built-in drawConnectors
             
@@ -2550,7 +2616,7 @@
                         ctx.arc(canvasX, canvasY, this.brushSize / 2, 0, Math.PI * 2);
                         ctx.fill();
                         
-                        console.log('🎨 DRAW: Started continuous drawing at', Math.round(canvasX), Math.round(canvasY));
+
                         this.showMessage('🎨 Drawing started - move hand to draw dynamically', 'info');
                     } else {
                         // Continue drawing: draw line from last point to current point
@@ -2569,13 +2635,13 @@
                         // Update last draw point
                         this.lastDrawPoint = { x: canvasX, y: canvasY };
                         
-                        console.log('🎨 DRAW: Continuous drawing to', Math.round(canvasX), Math.round(canvasY));
+
                     }
                 } else {
                     // Outside canvas - stop drawing
                     if (this.isDrawing) {
                         this.isDrawing = false;
-                        console.log('🎨 DRAW: Stopped drawing (outside canvas)');
+
                         this.showMessage('🛑 Drawing stopped (moved outside canvas)', 'info');
                     }
                 }
@@ -2597,14 +2663,14 @@
                         ctx.arc(x - rect.left, y - rect.top, this.brushSize * 2, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.globalCompositeOperation = 'source-over';
-                        console.log('🧹 ERASE: Erased at', Math.round(x - rect.left), Math.round(y - rect.top));
+
                     }
                     
                     // Always stop drawing mode when right-clicking
                     if (this.isDrawing) {
                         this.isDrawing = false;
                         this.showMessage('🛑 Drawing stopped', 'info');
-                        console.log('🛑 DRAW: Stopped drawing mode');
+
                     }
                 }
                 
@@ -2688,7 +2754,7 @@
                 ctx.shadowColor = this.brushColor;
                 
                 this.isDrawing = false;
-                console.log('🎨 DRAWING: Canvas initialized with size', canvas.width, 'x', canvas.height);
+
             }
             
             clearDrawingCanvas() {
@@ -2897,7 +2963,7 @@
             startPeriodicLogging() {
                 // Log system status every 10 seconds for debugging
                 setInterval(() => {
-                    console.log('📊 PERIODIC_STATUS:', {
+
                         timestamp: new Date().toISOString(),
                         isDetecting: this.isDetecting,
                         hasCamera: !!this.camera,
@@ -2924,7 +2990,7 @@
         
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🌟 PAGE: DOM loaded, starting Activities Center...');
+
             window.activitiesCenter = new ActivitiesCenter();
         });
     </script>

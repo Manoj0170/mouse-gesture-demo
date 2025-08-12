@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
     <!-- Simple JavaScript ML library -->
     <script src="https://unpkg.com/ml-matrix@6.10.4/lib/index.min.js"></script>
     <style>
@@ -333,6 +335,67 @@
             50% { background: linear-gradient(45deg, #4CAF50, #45a049); }
         }
 
+        /* Navigation header */
+        .nav-header {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 0;
+            z-index: 100;
+            margin-bottom: 20px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffeb3b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-links a.active {
+            background: rgba(255, 235, 59, 0.2);
+            color: #ffeb3b;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+        }
+
         .nav-bar {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
@@ -340,12 +403,6 @@
             margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 15px;
             align-items: center;
         }
 
@@ -386,6 +443,23 @@
     </style>
 </head>
 <body>
+    <!-- Navigation Header -->
+    <nav class="nav-header">
+        <div class="nav-container">
+            <div class="logo">
+                <span>🖐️</span>
+                <span>Gesture Control</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">🏠 Home</a></li>
+                <li><a href="gesture-trainer.html">🎓 Trainer</a></li>
+                <li><a href="gesture-tester.html" class="active">🧪 Tester</a></li>
+                <li><a href="activities-center.html">🎮 Activities</a></li>
+                <li><a href="README.md" target="_blank">📖 Docs</a></li>
+            </ul>
+        </div>
+    </nav>
+
     <div class="container">
         <nav class="nav-bar">
             <div class="nav-links">
@@ -510,7 +584,6 @@
             train(X, y) {
                 this.trainX = X.map(row => [...row]);
                 this.trainY = [...y];
-                console.log(`✅ k-NN trained with ${X.length} samples, k=${this.k}`);
             }
 
             predict(sample) {
@@ -577,8 +650,9 @@
 
         class GestureTester {
             constructor() {
-                this.hands = null;
+                this.detector = null;
                 this.camera = null;
+                this.poseType = 'hands'; // Default pose type
                 this.isDetecting = false;
                 this.modelData = null;
                 this.trainedModel = null;
@@ -598,7 +672,6 @@
             }
 
             init() {
-                console.log('🚀 Initializing Gesture Tester');
                 this.initElements();
                 this.setupEventListeners();
             }
@@ -679,6 +752,10 @@
                         throw new Error('Invalid model file format');
                     }
 
+                    if (this.modelData.poseType) {
+                        this.poseType = this.modelData.poseType;
+                    }
+
                     // Retrain model with loaded data
                     await this.retrainModel();
 
@@ -688,6 +765,7 @@
                     this.elements.modelInfo.style.display = 'block';
                     
                     this.elements.modelDetails.innerHTML = `
+                        <strong>Pose Type:</strong> ${this.poseType}<br>
                         <strong>Gestures:</strong> ${this.modelData.gestureNames.join(', ')}<br>
                         <strong>Features:</strong> ${this.modelData.numFeatures}<br>
                         <strong>Training Accuracy:</strong> ${(this.modelData.accuracy * 100).toFixed(1)}%<br>
@@ -699,7 +777,6 @@
                         this.elements.modelLoadStatus.style.display = 'none';
                     }, 3000);
 
-                    console.log('✅ Model loaded:', this.modelData);
 
                 } catch (error) {
                     console.error('❌ Failed to load model:', error);
@@ -709,20 +786,14 @@
             }
 
             async retrainModel() {
-                console.log('🔄 Retraining model from loaded data...');
-
                 const X = this.modelData.trainingData.map(d => d.features);
                 const y = this.modelData.trainingData.map(d => d.label);
-
                 const encodedY = y.map(label => this.modelData.labelEncoder[label]);
 
-                // Create new k-NN classifier
                 const k = this.modelData.k || Math.min(5, Math.floor(Math.sqrt(X.length)));
                 const knn = new SimpleKNNClassifier(k);
                 knn.train(X, encodedY);
-
                 this.trainedModel = knn;
-                console.log('✅ k-NN model retrained successfully');
             }
 
             async startDetection() {
@@ -735,8 +806,8 @@
                     this.updateCameraStatus('📹 Starting camera...');
                     this.camera = new Camera(this.elements.inputVideo, {
                         onFrame: async () => {
-                            if (this.hands) {
-                                await this.hands.send({ image: this.elements.inputVideo });
+                            if (this.detector) {
+                                await this.detector.send({ image: this.elements.inputVideo });
                             }
                         },
                         width: 640,
@@ -759,20 +830,56 @@
             }
 
             async initializeMediaPipe() {
-                this.hands = new Hands({
-                    locateFile: (file) => {
-                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-                    }
-                });
+                
+                if (this.poseType === 'hands') {
+                    this.detector = new Hands({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                        }
+                    });
 
-                this.hands.setOptions({
-                    maxNumHands: 1,
-                    modelComplexity: 1,
-                    minDetectionConfidence: 0.7,
-                    minTrackingConfidence: 0.5
-                });
+                    this.detector.setOptions({
+                        maxNumHands: 1,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
 
-                this.hands.onResults((results) => {
+                } else if (this.poseType === 'pose') {
+                    this.detector = new Pose({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                        }
+                    });
+
+                    this.detector.setOptions({
+                        modelComplexity: 1,
+                        smoothLandmarks: true,
+                        enableSegmentation: false,
+                        smoothSegmentation: false,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
+
+                } else if (this.poseType === 'holistic') {
+                    this.detector = new Holistic({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+                        }
+                    });
+
+                    this.detector.setOptions({
+                        modelComplexity: 1,
+                        smoothLandmarks: true,
+                        enableSegmentation: false,
+                        smoothSegmentation: false,
+                        refineFaceLandmarks: true,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
+                }
+
+                this.detector.onResults((results) => {
                     this.processResults(results);
                 });
             }
@@ -785,24 +892,44 @@
                 this.elements.outputCanvas.width = this.elements.inputVideo.videoWidth;
                 this.elements.outputCanvas.height = this.elements.inputVideo.videoHeight;
 
-                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                    const landmarks = results.multiHandLandmarks[0];
+                let landmarks = null;
 
-                    // Draw landmarks
-                    this.drawLandmarks(canvasCtx, landmarks);
+                // Extract landmarks based on pose type
+                if (this.poseType === 'hands') {
+                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                        landmarks = results.multiHandLandmarks[0];
+                        this.drawHandLandmarks(canvasCtx, landmarks);
+                    }
+                } else if (this.poseType === 'pose') {
+                    if (results.poseLandmarks) {
+                        landmarks = results.poseLandmarks;
+                        this.drawPoseLandmarks(canvasCtx, landmarks);
+                    }
+                } else if (this.poseType === 'holistic') {
+                    // For holistic, we'll combine all landmarks
+                    let allLandmarks = [];
+                    if (results.poseLandmarks) allLandmarks = allLandmarks.concat(results.poseLandmarks);
+                    if (results.leftHandLandmarks) allLandmarks = allLandmarks.concat(results.leftHandLandmarks);
+                    if (results.rightHandLandmarks) allLandmarks = allLandmarks.concat(results.rightHandLandmarks);
+                    
+                    if (allLandmarks.length > 0) {
+                        landmarks = allLandmarks;
+                        this.drawHolisticLandmarks(canvasCtx, results);
+                    }
+                }
 
+                if (landmarks) {
                     // Make prediction
                     this.predictGesture(landmarks);
-
                 } else {
-                    // No hand detected
+                    // No landmarks detected
                     this.updatePredictionDisplay(null);
                 }
 
                 canvasCtx.restore();
             }
 
-            drawLandmarks(ctx, landmarks) {
+            drawHandLandmarks(ctx, landmarks) {
                 // Draw connections
                 drawConnectors(ctx, landmarks, HAND_CONNECTIONS,
                     { color: '#00FF00', lineWidth: 2 });
@@ -828,6 +955,61 @@
                     ctx.fillStyle = '#FFFFFF';
                     ctx.font = '10px Arial';
                     ctx.fillText(i.toString(), x + 6, y - 6);
+                }
+            }
+
+            drawPoseLandmarks(ctx, landmarks) {
+                // Draw pose connections
+                drawConnectors(ctx, landmarks, POSE_CONNECTIONS, 
+                    { color: '#00FF00', lineWidth: 3 });
+                
+                // Draw landmarks
+                for (let i = 0; i < landmarks.length; i++) {
+                    const landmark = landmarks[i];
+                    const x = landmark.x * this.elements.outputCanvas.width;
+                    const y = landmark.y * this.elements.outputCanvas.height;
+                    
+                    // Color coding for different body parts
+                    if (i <= 10) ctx.fillStyle = '#FF0000'; // Face/head
+                    else if (i <= 16) ctx.fillStyle = '#00FF00'; // Arms/shoulders
+                    else if (i <= 22) ctx.fillStyle = '#0066FF'; // Core/hips
+                    else ctx.fillStyle = '#FF00FF'; // Legs
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // Draw landmark number
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i.toString(), x + 6, y - 6);
+                }
+            }
+
+            drawHolisticLandmarks(ctx, results) {
+                // Draw pose landmarks
+                if (results.poseLandmarks) {
+                    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
+                        { color: '#00FF00', lineWidth: 2 });
+                    drawLandmarks(ctx, results.poseLandmarks, { color: '#FF0000', radius: 4 });
+                }
+                
+                // Draw hand landmarks
+                if (results.leftHandLandmarks) {
+                    drawConnectors(ctx, results.leftHandLandmarks, HAND_CONNECTIONS,
+                        { color: '#00FFFF', lineWidth: 2 });
+                    drawLandmarks(ctx, results.leftHandLandmarks, { color: '#0000FF', radius: 3 });
+                }
+                
+                if (results.rightHandLandmarks) {
+                    drawConnectors(ctx, results.rightHandLandmarks, HAND_CONNECTIONS,
+                        { color: '#FFFF00', lineWidth: 2 });
+                    drawLandmarks(ctx, results.rightHandLandmarks, { color: '#FF6600', radius: 3 });
+                }
+                
+                // Draw face mesh (simplified for performance)
+                if (results.faceLandmarks) {
+                    drawLandmarks(ctx, results.faceLandmarks, { color: '#C0C0C0', radius: 1 });
                 }
             }
 
@@ -859,49 +1041,141 @@
             }
 
             extractFeatures(landmarks) {
-                // Same feature extraction as in training
                 const features = [];
+                
+                if (this.poseType === 'hands') {
+                    return this.extractHandFeatures(landmarks);
+                } else if (this.poseType === 'pose') {
+                    return this.extractPoseFeatures(landmarks);
+                } else if (this.poseType === 'holistic') {
+                    return this.extractHolisticFeatures(landmarks);
+                }
+                
+                return features;
+            }
 
-                // 1. Raw coordinates
+            extractHandFeatures(landmarks) {
+                // Extract comprehensive features from hand landmarks
+                const features = [];
+                
+                // 1. Raw coordinates (normalized)
                 landmarks.forEach(landmark => {
                     features.push(landmark.x, landmark.y, landmark.z);
                 });
-
+                
                 // 2. Distances between key points
-                const keyPoints = [0, 4, 8, 12, 16, 20];
+                const keyPoints = [0, 4, 8, 12, 16, 20]; // Wrist, fingertips
                 for (let i = 0; i < keyPoints.length; i++) {
                     for (let j = i + 1; j < keyPoints.length; j++) {
                         const p1 = landmarks[keyPoints[i]];
                         const p2 = landmarks[keyPoints[j]];
                         const distance = Math.sqrt(
-                            Math.pow(p1.x - p2.x, 2) +
-                            Math.pow(p1.y - p2.y, 2) +
+                            Math.pow(p1.x - p2.x, 2) + 
+                            Math.pow(p1.y - p2.y, 2) + 
                             Math.pow(p1.z - p2.z, 2)
                         );
                         features.push(distance);
                     }
                 }
-
+                
                 // 3. Angles between finger segments
                 const fingerChains = [
-                    [1, 2, 3, 4],
-                    [5, 6, 7, 8],
-                    [9, 10, 11, 12],
-                    [13, 14, 15, 16],
-                    [17, 18, 19, 20]
+                    [1, 2, 3, 4],   // Thumb
+                    [5, 6, 7, 8],   // Index
+                    [9, 10, 11, 12], // Middle
+                    [13, 14, 15, 16], // Ring
+                    [17, 18, 19, 20] // Pinky
                 ];
-
+                
                 fingerChains.forEach(chain => {
                     for (let i = 0; i < chain.length - 2; i++) {
                         const p1 = landmarks[chain[i]];
                         const p2 = landmarks[chain[i + 1]];
                         const p3 = landmarks[chain[i + 2]];
-
+                        
                         const angle = this.calculateAngle(p1, p2, p3);
                         features.push(angle);
                     }
                 });
+                
+                return features;
+            }
 
+            extractPoseFeatures(landmarks) {
+                // Extract features from body pose landmarks (33 landmarks)
+                const features = [];
+                
+                // 1. Raw coordinates
+                landmarks.forEach(landmark => {
+                    features.push(landmark.x, landmark.y, landmark.z);
+                });
+                
+                // 2. Key body segment distances
+                const keyPoints = [0, 11, 12, 13, 14, 15, 16, 23, 24]; // Key body joints
+                for (let i = 0; i < keyPoints.length; i++) {
+                    for (let j = i + 1; j < keyPoints.length; j++) {
+                        if (landmarks[keyPoints[i]] && landmarks[keyPoints[j]]) {
+                            const p1 = landmarks[keyPoints[i]];
+                            const p2 = landmarks[keyPoints[j]];
+                            const distance = Math.sqrt(
+                                Math.pow(p1.x - p2.x, 2) + 
+                                Math.pow(p1.y - p2.y, 2) + 
+                                Math.pow(p1.z - p2.z, 2)
+                            );
+                            features.push(distance);
+                        }
+                    }
+                }
+                
+                // 3. Body segment angles
+                const bodyChains = [
+                    [11, 13, 15], // Left arm
+                    [12, 14, 16], // Right arm
+                    [23, 25, 27], // Left leg (if available)
+                    [24, 26, 28], // Right leg (if available)
+                ];
+                
+                bodyChains.forEach(chain => {
+                    if (landmarks[chain[0]] && landmarks[chain[1]] && landmarks[chain[2]]) {
+                        const p1 = landmarks[chain[0]];
+                        const p2 = landmarks[chain[1]];
+                        const p3 = landmarks[chain[2]];
+                        
+                        const angle = this.calculateAngle(p1, p2, p3);
+                        features.push(angle);
+                    }
+                });
+                
+                return features;
+            }
+
+            extractHolisticFeatures(landmarks) {
+                // For holistic, landmarks array contains concatenated pose + hands
+                // We'll extract features from all available landmarks
+                const features = [];
+                
+                // 1. Raw coordinates for all landmarks
+                landmarks.forEach(landmark => {
+                    features.push(landmark.x, landmark.y, landmark.z);
+                });
+                
+                // 2. Distances between various key points (simplified for performance)
+                const numLandmarks = landmarks.length;
+                const stepSize = Math.max(1, Math.floor(numLandmarks / 20)); // Sample every few landmarks
+                
+                for (let i = 0; i < numLandmarks; i += stepSize) {
+                    for (let j = i + stepSize; j < numLandmarks; j += stepSize) {
+                        const p1 = landmarks[i];
+                        const p2 = landmarks[j];
+                        const distance = Math.sqrt(
+                            Math.pow(p1.x - p2.x, 2) + 
+                            Math.pow(p1.y - p2.y, 2) + 
+                            Math.pow(p1.z - p2.z, 2)
+                        );
+                        features.push(distance);
+                    }
+                }
+                
                 return features;
             }
 
@@ -1040,12 +1314,10 @@
                 this.updatePredictionDisplay(null);
 
                 this.updateCameraStatus('Detection stopped');
-                console.log('✅ Detection stopped');
             }
 
             updateCameraStatus(message) {
                 this.elements.cameraStatus.textContent = message;
-                console.log('📊', message);
             }
 
             showError(message) {
@@ -1054,7 +1326,6 @@
                 setTimeout(() => {
                     this.elements.errorMessage.style.display = 'none';
                 }, 5000);
-                console.error('❌', message);
             }
         }
 

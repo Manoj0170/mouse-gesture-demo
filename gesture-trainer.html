@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
     <!-- Simple JavaScript-based ML library -->
     <script src="https://unpkg.com/ml-matrix@6.10.4/lib/index.min.js"></script>
     <style>
@@ -314,6 +316,67 @@
             opacity: 1;
         }
 
+        /* Navigation header */
+        .nav-header {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 0;
+            z-index: 100;
+            margin-bottom: 20px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffeb3b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-links a.active {
+            background: rgba(255, 235, 59, 0.2);
+            color: #ffeb3b;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+        }
+
         .nav-bar {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
@@ -321,12 +384,6 @@
             margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 15px;
             align-items: center;
         }
 
@@ -361,6 +418,23 @@
     </style>
 </head>
 <body>
+    <!-- Navigation Header -->
+    <nav class="nav-header">
+        <div class="nav-container">
+            <div class="logo">
+                <span>🖐️</span>
+                <span>Gesture Control</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">🏠 Home</a></li>
+                <li><a href="gesture-trainer.html" class="active">🎓 Trainer</a></li>
+                <li><a href="gesture-tester.html">🧪 Tester</a></li>
+                <li><a href="activities-center.html">🎮 Activities</a></li>
+                <li><a href="README.md" target="_blank">📖 Docs</a></li>
+            </ul>
+        </div>
+    </nav>
+
     <div class="container">
         <nav class="nav-bar">
             <div class="nav-links">
@@ -388,6 +462,15 @@
                 <div class="setup-form">
                     <h2>🎯 Configure Your Gestures</h2>
                     
+                    <div class="form-group">
+                        <label>Select Detection Type</label>
+                        <select id="poseType" style="padding: 15px; border: none; border-radius: 10px; font-size: 16px; background: rgba(255, 255, 255, 0.9); color: #333; width: 300px;">
+                            <option value="hands">Hand Detection (21 landmarks)</option>
+                            <option value="pose">Full Body Pose (33 landmarks)</option>
+                            <option value="holistic">Holistic (Face + Hands + Pose)</option>
+                        </select>
+                    </div>
+
                     <div class="form-group">
                         <label>How many gestures do you want to train?</label>
                         <input type="number" id="gestureCount" min="2" max="10" value="4" placeholder="Enter number (2-10)">
@@ -533,9 +616,8 @@
             }
 
             train(X, y) {
-                this.trainX = X.map(row => [...row]); // Deep copy
-                this.trainY = [...y]; // Copy array
-                console.log(`✅ k-NN trained with ${X.length} samples, k=${this.k}`);
+                this.trainX = X.map(row => [...row]);
+                this.trainY = [...y];
             }
 
             predict(sample) {
@@ -610,8 +692,9 @@
 
         class GestureTrainer {
             constructor() {
-                this.hands = null;
+                this.detector = null; // Changed from this.hands to this.detector
                 this.camera = null;
+                this.poseType = 'hands'; // Default pose type
                 this.isRecording = false;
                 this.currentGestureIndex = 0;
                 this.trainingData = [];
@@ -628,7 +711,6 @@
             }
 
             init() {
-                console.log('🚀 Initializing Gesture Trainer');
                 this.initElements();
                 this.setupEventListeners();
                 this.setupCacheCleanup();
@@ -639,6 +721,7 @@
             initElements() {
                 this.elements = {
                     // Setup phase
+                    poseType: document.getElementById('poseType'),
                     gestureCount: document.getElementById('gestureCount'),
                     gestureNames: document.getElementById('gestureNames'),
                     startSetup: document.getElementById('startSetup'),
@@ -683,6 +766,10 @@
             }
 
             setupEventListeners() {
+                this.elements.poseType.addEventListener('change', () => {
+                    this.poseType = this.elements.poseType.value;
+                });
+
                 this.elements.gestureCount.addEventListener('change', () => {
                     this.updateGestureNameInputs();
                 });
@@ -731,6 +818,10 @@
             }
 
             startDataCollection() {
+                // Get the selected pose type
+                this.poseType = this.elements.poseType.value;
+                console.log('🔧 Selected pose type:', this.poseType);
+                
                 // Collect gesture names
                 const count = parseInt(this.elements.gestureCount.value);
                 this.gestureNames = [];
@@ -745,7 +836,6 @@
                     this.sampleCounts[name] = 0;
                 }
 
-                console.log('👋 Starting data collection for gestures:', this.gestureNames);
                 this.saveProgress();
                 this.switchToTrainingPhase();
             }
@@ -797,15 +887,15 @@
             async initializeCamera() {
                 try {
                     this.elements.initCamera.innerHTML = '<div class="loading"></div> Initializing...';
-                    this.updateCameraStatus('🔄 Initializing MediaPipe Hands...');
+                    this.updateCameraStatus('Initializing MediaPipe...');
                     
                     await this.initializeMediaPipe();
                     
-                    this.updateCameraStatus('📹 Starting camera...');
+                    this.updateCameraStatus('Starting camera...');
                     this.camera = new Camera(this.elements.inputVideo, {
                         onFrame: async () => {
-                            if (this.hands) {
-                                await this.hands.send({ image: this.elements.inputVideo });
+                            if (this.detector) {
+                                await this.detector.send({ image: this.elements.inputVideo });
                             }
                         },
                         width: 640,
@@ -816,7 +906,7 @@
                     
                     this.elements.initCamera.textContent = '✅ Camera Ready';
                     this.elements.initCamera.disabled = true;
-                    this.updateCameraStatus('✅ Camera ready! You can now start recording gestures.');
+                    this.updateCameraStatus('Camera ready! You can now start recording gestures.');
                     
                 } catch (error) {
                     console.error('❌ Failed to initialize camera:', error);
@@ -826,20 +916,56 @@
             }
 
             async initializeMediaPipe() {
-                this.hands = new Hands({
-                    locateFile: (file) => {
-                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-                    }
-                });
+                
+                if (this.poseType === 'hands') {
+                    this.detector = new Hands({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                        }
+                    });
 
-                this.hands.setOptions({
-                    maxNumHands: 1,
-                    modelComplexity: 1,
-                    minDetectionConfidence: 0.7,
-                    minTrackingConfidence: 0.5
-                });
+                    this.detector.setOptions({
+                        maxNumHands: 1,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
 
-                this.hands.onResults((results) => {
+                } else if (this.poseType === 'pose') {
+                    this.detector = new Pose({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                        }
+                    });
+
+                    this.detector.setOptions({
+                        modelComplexity: 1,
+                        smoothLandmarks: true,
+                        enableSegmentation: false,
+                        smoothSegmentation: false,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
+
+                } else if (this.poseType === 'holistic') {
+                    this.detector = new Holistic({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+                        }
+                    });
+
+                    this.detector.setOptions({
+                        modelComplexity: 1,
+                        smoothLandmarks: true,
+                        enableSegmentation: false,
+                        smoothSegmentation: false,
+                        refineFaceLandmarks: true,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
+                }
+
+                this.detector.onResults((results) => {
                     this.processResults(results);
                 });
             }
@@ -852,22 +978,41 @@
                 this.elements.outputCanvas.width = this.elements.inputVideo.videoWidth;
                 this.elements.outputCanvas.height = this.elements.inputVideo.videoHeight;
 
-                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                    const landmarks = results.multiHandLandmarks[0];
-                    
-                    // Draw landmarks
-                    this.drawLandmarks(canvasCtx, landmarks);
-                    
-                    // Record data if recording
-                    if (this.isRecording) {
-                        this.recordLandmarkData(landmarks);
+                let landmarks = null;
+
+                // Extract landmarks based on pose type
+                if (this.poseType === 'hands') {
+                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                        landmarks = results.multiHandLandmarks[0];
+                        this.drawHandLandmarks(canvasCtx, landmarks);
                     }
+                } else if (this.poseType === 'pose') {
+                    if (results.poseLandmarks) {
+                        landmarks = results.poseLandmarks;
+                        this.drawPoseLandmarks(canvasCtx, landmarks);
+                    }
+                } else if (this.poseType === 'holistic') {
+                    // For holistic, we'll combine all landmarks
+                    let allLandmarks = [];
+                    if (results.poseLandmarks) allLandmarks = allLandmarks.concat(results.poseLandmarks);
+                    if (results.leftHandLandmarks) allLandmarks = allLandmarks.concat(results.leftHandLandmarks);
+                    if (results.rightHandLandmarks) allLandmarks = allLandmarks.concat(results.rightHandLandmarks);
+                    
+                    if (allLandmarks.length > 0) {
+                        landmarks = allLandmarks;
+                        this.drawHolisticLandmarks(canvasCtx, results);
+                    }
+                }
+                
+                // Record data if recording and landmarks exist
+                if (this.isRecording && landmarks) {
+                    this.recordLandmarkData(landmarks);
                 }
                 
                 canvasCtx.restore();
             }
 
-            drawLandmarks(ctx, landmarks) {
+            drawHandLandmarks(ctx, landmarks) {
                 // Draw connections
                 drawConnectors(ctx, landmarks, HAND_CONNECTIONS, 
                     { color: '#00FF00', lineWidth: 3 });
@@ -897,6 +1042,61 @@
                 }
             }
 
+            drawPoseLandmarks(ctx, landmarks) {
+                // Draw pose connections
+                drawConnectors(ctx, landmarks, POSE_CONNECTIONS, 
+                    { color: '#00FF00', lineWidth: 3 });
+                
+                // Draw landmarks
+                for (let i = 0; i < landmarks.length; i++) {
+                    const landmark = landmarks[i];
+                    const x = landmark.x * this.elements.outputCanvas.width;
+                    const y = landmark.y * this.elements.outputCanvas.height;
+                    
+                    // Color coding for different body parts
+                    if (i <= 10) ctx.fillStyle = '#FF0000'; // Face/head
+                    else if (i <= 16) ctx.fillStyle = '#00FF00'; // Arms/shoulders
+                    else if (i <= 22) ctx.fillStyle = '#0066FF'; // Core/hips
+                    else ctx.fillStyle = '#FF00FF'; // Legs
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // Draw landmark number
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i.toString(), x + 6, y - 6);
+                }
+            }
+
+            drawHolisticLandmarks(ctx, results) {
+                // Draw pose landmarks
+                if (results.poseLandmarks) {
+                    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
+                        { color: '#00FF00', lineWidth: 2 });
+                    drawLandmarks(ctx, results.poseLandmarks, { color: '#FF0000', radius: 4 });
+                }
+                
+                // Draw hand landmarks
+                if (results.leftHandLandmarks) {
+                    drawConnectors(ctx, results.leftHandLandmarks, HAND_CONNECTIONS,
+                        { color: '#00FFFF', lineWidth: 2 });
+                    drawLandmarks(ctx, results.leftHandLandmarks, { color: '#0000FF', radius: 3 });
+                }
+                
+                if (results.rightHandLandmarks) {
+                    drawConnectors(ctx, results.rightHandLandmarks, HAND_CONNECTIONS,
+                        { color: '#FFFF00', lineWidth: 2 });
+                    drawLandmarks(ctx, results.rightHandLandmarks, { color: '#FF6600', radius: 3 });
+                }
+                
+                // Draw face mesh (simplified for performance)
+                if (results.faceLandmarks) {
+                    drawLandmarks(ctx, results.faceLandmarks, { color: '#C0C0C0', radius: 1 });
+                }
+            }
+
             startRecording(gestureIndex) {
                 if (!this.camera) {
                     this.showError('Please initialize the camera first!');
@@ -918,8 +1118,7 @@
                 });
                 document.getElementById(`stop_${this.currentGestureIndex}`).disabled = false;
                 
-                this.updateCameraStatus(`🔴 Recording "${gestureName}" - Show your hand and perform the gesture multiple times`);
-                console.log(`🔴 Started recording gesture: ${gestureName}`);
+                this.updateCameraStatus(`Recording "${gestureName}" - Show your hand and perform the gesture multiple times`);
             }
 
             stopRecording() {
@@ -946,13 +1145,9 @@
                 });
                 document.getElementById(`stop_${this.currentGestureIndex}`).disabled = true;
                 
-                this.updateCameraStatus(`✅ Recorded ${this.recordingData.length} samples for "${gestureName}"`);
+                this.updateCameraStatus(`Recorded ${this.recordingData.length} samples for "${gestureName}"`);
                 this.updateProgress();
-                this.saveProgress(); // Save after recording data
-                
-                console.log(`✅ Stopped recording. Collected ${this.recordingData.length} samples for "${gestureName}"`);
-                
-                // Check if we have enough data
+                this.saveProgress();
                 this.checkTrainingReadiness();
             }
 
@@ -966,6 +1161,20 @@
             }
 
             extractFeatures(landmarks) {
+                const features = [];
+                
+                if (this.poseType === 'hands') {
+                    return this.extractHandFeatures(landmarks);
+                } else if (this.poseType === 'pose') {
+                    return this.extractPoseFeatures(landmarks);
+                } else if (this.poseType === 'holistic') {
+                    return this.extractHolisticFeatures(landmarks);
+                }
+                
+                return features;
+            }
+
+            extractHandFeatures(landmarks) {
                 // Extract comprehensive features from hand landmarks
                 const features = [];
                 
@@ -1008,6 +1217,84 @@
                         features.push(angle);
                     }
                 });
+                
+                return features;
+            }
+
+            extractPoseFeatures(landmarks) {
+                // Extract features from body pose landmarks (33 landmarks)
+                const features = [];
+                
+                // 1. Raw coordinates
+                landmarks.forEach(landmark => {
+                    features.push(landmark.x, landmark.y, landmark.z);
+                });
+                
+                // 2. Key body segment distances
+                const keyPoints = [0, 11, 12, 13, 14, 15, 16, 23, 24]; // Key body joints
+                for (let i = 0; i < keyPoints.length; i++) {
+                    for (let j = i + 1; j < keyPoints.length; j++) {
+                        if (landmarks[keyPoints[i]] && landmarks[keyPoints[j]]) {
+                            const p1 = landmarks[keyPoints[i]];
+                            const p2 = landmarks[keyPoints[j]];
+                            const distance = Math.sqrt(
+                                Math.pow(p1.x - p2.x, 2) + 
+                                Math.pow(p1.y - p2.y, 2) + 
+                                Math.pow(p1.z - p2.z, 2)
+                            );
+                            features.push(distance);
+                        }
+                    }
+                }
+                
+                // 3. Body segment angles
+                const bodyChains = [
+                    [11, 13, 15], // Left arm
+                    [12, 14, 16], // Right arm
+                    [23, 25, 27], // Left leg (if available)
+                    [24, 26, 28], // Right leg (if available)
+                ];
+                
+                bodyChains.forEach(chain => {
+                    if (landmarks[chain[0]] && landmarks[chain[1]] && landmarks[chain[2]]) {
+                        const p1 = landmarks[chain[0]];
+                        const p2 = landmarks[chain[1]];
+                        const p3 = landmarks[chain[2]];
+                        
+                        const angle = this.calculateAngle(p1, p2, p3);
+                        features.push(angle);
+                    }
+                });
+                
+                return features;
+            }
+
+            extractHolisticFeatures(landmarks) {
+                // For holistic, landmarks array contains concatenated pose + hands
+                // We'll extract features from all available landmarks
+                const features = [];
+                
+                // 1. Raw coordinates for all landmarks
+                landmarks.forEach(landmark => {
+                    features.push(landmark.x, landmark.y, landmark.z);
+                });
+                
+                // 2. Distances between various key points (simplified for performance)
+                const numLandmarks = landmarks.length;
+                const stepSize = Math.max(1, Math.floor(numLandmarks / 20)); // Sample every few landmarks
+                
+                for (let i = 0; i < numLandmarks; i += stepSize) {
+                    for (let j = i + stepSize; j < numLandmarks; j += stepSize) {
+                        const p1 = landmarks[i];
+                        const p2 = landmarks[j];
+                        const distance = Math.sqrt(
+                            Math.pow(p1.x - p2.x, 2) + 
+                            Math.pow(p1.y - p2.y, 2) + 
+                            Math.pow(p1.z - p2.z, 2)
+                        );
+                        features.push(distance);
+                    }
+                }
                 
                 return features;
             }
@@ -1076,11 +1363,6 @@
                     
                     const encodedY = y.map(label => labelEncoder[label]);
                     
-                    console.log('🎓 Training k-NN classifier with:', {
-                        samples: X.length,
-                        features: X[0].length,
-                        classes: uniqueLabels.length
-                    });
                     
                     // Create k-NN classifier
                     const k = parseInt(this.elements.kValue.value) || Math.min(5, Math.floor(Math.sqrt(X.length)));
@@ -1117,7 +1399,6 @@
                     this.elements.downloadModel.style.display = 'inline-block';
                     this.elements.testModel.style.display = 'inline-block';
                     
-                    console.log('✅ Model training completed:', this.trainedModel);
                     
                 } catch (error) {
                     console.error('❌ Model training failed:', error);
@@ -1143,6 +1424,7 @@
                 
                 const modelData = {
                     modelName: sanitizedName,
+                    poseType: this.poseType, // Add pose type metadata
                     gestureNames: this.trainedModel.gestureNames,
                     labelEncoder: this.trainedModel.labelEncoder,
                     labelDecoder: this.trainedModel.labelDecoder,
@@ -1167,7 +1449,6 @@
                 a.click();
                 URL.revokeObjectURL(url);
                 
-                console.log('💾 Model saved and downloaded:', sanitizedName);
             }
 
             async saveModelToLocal(modelName, modelData) {
@@ -1178,7 +1459,6 @@
                     localStorage.setItem('gesture_saved_models', JSON.stringify(savedModels));
                     
                     this.elements.trainingStatus.textContent = `✅ Model "${modelName}" saved successfully and downloaded!`;
-                    console.log('💾 Model saved to local storage:', modelName);
                 } catch (error) {
                     console.error('❌ Failed to save model:', error);
                     this.showError('Failed to save model to local storage');
@@ -1223,7 +1503,6 @@
 
             updateCameraStatus(message) {
                 this.elements.cameraStatus.textContent = message;
-                console.log('📊', message);
             }
 
             showError(message) {
@@ -1232,7 +1511,6 @@
                 setTimeout(() => {
                     this.elements.errorMessage.style.display = 'none';
                 }, 5000);
-                console.error('❌', message);
             }
 
             setupCacheCleanup() {
@@ -1240,9 +1518,8 @@
                 window.addEventListener('beforeunload', () => {
                     try {
                         localStorage.removeItem(this.cacheKey);
-                        console.log('🧹 Cache cleaned up on window close');
                     } catch (error) {
-                        console.error('❌ Failed to clean cache:', error);
+                        // Silently fail cache cleanup
                     }
                 });
             }
@@ -1258,7 +1535,6 @@
                     };
                     
                     localStorage.setItem(this.cacheKey, JSON.stringify(progressData));
-                    console.log('💾 Progress saved to cache');
                 } catch (error) {
                     console.error('❌ Failed to save progress:', error);
                 }
@@ -1275,29 +1551,22 @@
                         this.trainingData = progressData.trainingData || [];
                         
                         if (this.gestureNames.length > 0) {
-                            // Restore gesture count
                             this.elements.gestureCount.value = this.gestureNames.length;
                             this.updateGestureNameInputs();
                             
-                            // Restore gesture names in input fields
                             this.gestureNames.forEach((name, index) => {
                                 const input = document.getElementById(`gesture_${index}`);
                                 if (input) input.value = name;
                             });
                             
-                            // Switch to appropriate phase if we have data
                             if (progressData.currentPhase === 'training' && this.trainingData.length > 0) {
                                 this.switchToTrainingPhase();
                                 this.renderTrainingGestures();
                                 this.updateProgress();
-                                console.log('📋 Restored training progress');
                             } else if (progressData.currentPhase === 'model' && this.trainingData.length > 0) {
                                 this.switchToModelPhase();
-                                console.log('📋 Restored model training phase');
                             }
                         }
-                        
-                        console.log('📋 Progress restored from cache');
                     }
                 } catch (error) {
                     console.error('❌ Failed to restore progress:', error);
