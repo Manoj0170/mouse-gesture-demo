@@ -1002,8 +1002,10 @@
             }
             
             init() {
+                console.log('🚀 INIT: Starting ActivitiesCenter initialization');
                 this.initElements();
                 this.setupEventListeners();
+                console.log('✅ INIT: ActivitiesCenter initialized successfully');
             }
             
             initElements() {
@@ -1098,18 +1100,30 @@
             
             setupEventListeners() {
                 // Model file input
-                this.elements.modelFile.addEventListener('change', (e) => {
-                    if (e.target.files.length > 0) {
-                        this.loadModel(e.target.files[0]);
-                    }
-                });
+                if (this.elements.modelFile) {
+                    this.elements.modelFile.addEventListener('change', (e) => {
+                        console.log('📁 MODEL: File selected:', e.target.files[0]?.name);
+                        if (e.target.files.length > 0) {
+                            this.loadModel(e.target.files[0]);
+                        }
+                    });
+                    console.log('✅ SETUP: Model file input listener attached');
+                } else {
+                    console.error('❌ SETUP: modelFile element not found');
+                }
                 
-                // Schema file input
-                this.elements.schemaFile.addEventListener('change', (e) => {
-                    if (e.target.files.length > 0) {
-                        this.loadSchema(e.target.files[0]);
-                    }
-                });
+                // Schema file input  
+                if (this.elements.schemaFile) {
+                    this.elements.schemaFile.addEventListener('change', (e) => {
+                        console.log('📁 SCHEMA: File selected:', e.target.files[0]?.name);
+                        if (e.target.files.length > 0) {
+                            this.loadSchema(e.target.files[0]);
+                        }
+                    });
+                    console.log('✅ SETUP: Schema file input listener attached');
+                } else {
+                    console.error('❌ SETUP: schemaFile element not found');
+                }
                 
                 // Mapping buttons
                 this.elements.saveMapping.addEventListener('click', () => {
@@ -1402,21 +1416,28 @@
             
             async loadModel(file) {
                 try {
+                    console.log('📁 MODEL: Starting to load model file:', file.name);
                     this.showStatus('Loading model...');
                     
                     const text = await file.text();
                     const data = JSON.parse(text);
                     
+                    console.log('📊 MODEL: Parsed model data:', Object.keys(data));
+                    
                     // Validate model data (same as gesture-tester)
                     if (!data.gestureNames || !data.labelEncoder) {
-                        throw new Error('Invalid model file format');
+                        throw new Error('Invalid model file format - missing gestureNames or labelEncoder');
                     }
+                    
+                    console.log('🎯 MODEL: Gesture names found:', data.gestureNames);
+                    console.log('🔧 MODEL: Pose type:', data.poseType || 'hands (default)');
                     
                     if (data.poseType && ['hands', 'pose', 'holistic'].includes(data.poseType)) {
                         const oldPoseType = this.poseType;
                         this.poseType = data.poseType;
                         
                         if (this.isDetecting && oldPoseType !== this.poseType) {
+                            console.log('🔄 MODEL: Pose type changed, reinitializing MediaPipe');
                             await this.initializeMediaPipe();
                         }
                     }
@@ -1427,9 +1448,12 @@
                     this.setupGestureMappings();
                     this.displayModelInfo(file.name);
                     this.showMessage('Model loaded successfully!', 'success');
+                    console.log('✅ MODEL: Model loaded and ready');
                     
                 } catch (error) {
+                    console.error('❌ MODEL: Failed to load model:', error);
                     this.showMessage(`Failed to load model: ${error.message}`, 'error');
+                    this.showStatus('Model loading failed');
                 }
             }
             
@@ -1451,8 +1475,11 @@
             
             async loadSchema(file) {
                 try {
+                    console.log('📁 SCHEMA: Starting to load schema file:', file.name);
+                    
                     if (!this.modelData) {
                         this.showMessage('Please load a model first', 'error');
+                        console.warn('⚠️ SCHEMA: No model loaded, cannot apply schema');
                         return;
                     }
                     
@@ -1460,21 +1487,50 @@
                     const text = await file.text();
                     const schema = JSON.parse(text);
                     
+                    console.log('📊 SCHEMA: Parsed schema data:', Object.keys(schema));
+                    
                     if (!schema.mapping) {
                         throw new Error('Invalid schema format: missing mapping object');
                     }
                     
+                    console.log('🔄 SCHEMA: Applying schema mappings:', schema.mapping);
                     this.applySchema(schema);
                     
                     const mappingCount = Object.keys(schema.mapping).length;
                     this.showMessage(`Schema loaded! Applied ${mappingCount} gesture mappings.`, 'success');
                     this.showStatus(`Schema loaded: ${mappingCount} mappings applied`);
+                    console.log(`✅ SCHEMA: Successfully applied ${mappingCount} mappings`);
                     
                 } catch (error) {
                     console.error('❌ SCHEMA: Failed to load schema:', error);
                     this.showMessage(`Failed to load schema: ${error.message}`, 'error');
                     this.showStatus('Schema load failed');
                 }
+            }
+            
+            applySchema(schema) {
+                console.log('🔄 SCHEMA: Applying schema mappings');
+                
+                // Clear existing mappings
+                this.gestureMapping = {};
+                
+                // Apply mappings from schema
+                if (schema.mapping) {
+                    Object.entries(schema.mapping).forEach(([gesture, action]) => {
+                        this.gestureMapping[gesture] = action;
+                        console.log(`🎯 SCHEMA: Mapped ${gesture} → ${action}`);
+                    });
+                }
+                
+                // Apply colors if available
+                if (schema.colors) {
+                    this.gestureColors = { ...schema.colors };
+                    console.log('🎨 SCHEMA: Applied color mappings:', schema.colors);
+                }
+                
+                // Refresh the gesture mappings UI
+                this.setupGestureMappings();
+                console.log('✅ SCHEMA: Schema applied successfully');
             }
             
             setupGestureMappings() {
