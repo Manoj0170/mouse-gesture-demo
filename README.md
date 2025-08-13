@@ -2,6 +2,8 @@
 
 **Transform your webcam into a powerful AI-powered mouse controller using hand gestures, body poses, or holistic detection.**
 
+## 🚀 **[✨ Try Live Demo](https://manoj0170.github.io/mouse-gesture-demo/)**
+
 ## 🎯 What This Project Does
 
 This system allows you to control your computer mouse using **natural body movements** detected through your webcam. It supports three detection methods:
@@ -12,6 +14,10 @@ This system allows you to control your computer mouse using **natural body movem
 
 ## 🚀 Quick Start
 
+### **Online (Recommended):**
+**[🌐 Launch Demo](https://manoj0170.github.io/mouse-gesture-demo/)** - No installation required!
+
+### **Local Setup:**
 1. **Open `index.html`** in your browser
 2. **Choose your tool**:
    - 🎓 **Gesture Trainer** - Create custom gesture models
@@ -80,13 +86,14 @@ Every gesture maps to one essential mouse action:
 ## 🚀 Getting Started
 
 ### Quick Demo (2 minutes):
-1. Open `activities-center.html`
-2. Click "Load Default Model"
-3. Allow camera access
-4. Start controlling your mouse with gestures!
+1. **[🚀 Open Live Demo](https://manoj0170.github.io/mouse-gesture-demo/)**
+2. Go to "Activities Center"
+3. Click "Load Default Model"
+4. Allow camera access
+5. Start controlling your mouse with gestures!
 
 ### Create Custom Gestures (10 minutes):
-1. Open `gesture-trainer.html`
+1. **[🎓 Open Gesture Trainer](https://manoj0170.github.io/mouse-gesture-demo/gesture-trainer.html)**
 2. Select detection type (Hand/Body/Holistic)
 3. Train 4-6 custom gestures with 50+ samples each
 4. Download your personalized model
@@ -111,4 +118,4 @@ This project demonstrates the **democratization of AI-powered interfaces**:
 
 **🎯 Experience the future of human-computer interaction - control your computer with just your body movements!**
 
-*Open `index.html` to get started in under 30 seconds.*
+### 🌐 **[Start Now - No Download Required!](https://manoj0170.github.io/mouse-gesture-demo/)**
